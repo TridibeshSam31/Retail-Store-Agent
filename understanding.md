@@ -40,3 +40,17 @@
 5. **Expiry alerts for items that are nearing their expiry date. -> Trigger**
     - Failure: 
     - Approach:
+
+## Imp things to consider:
+    - Hallucination in LLMs
+    - Model Drift
+    - Model will learn from previous interactions but to make sure the interactions are correct else model will degrade, decay of previous interactions.
+    - As merger/resollver must receive output from all sub agents and then only make a decision, else it will be a single point of failure.
+    - check when output is wrong and state why
+
+### Consequence of error:
+    - Money loss, over stock, under stock, expiry of items, loss of customer trust.
+
+### Why does this system exist at all, and what single cost or loss does it remove?
+    - Manual checking of stock levels instead of doing whats best with their time. Agentic reports to analyze and make decisions for future.
+    
