@@ -28,3 +28,88 @@ df['sigma_d'] = df.groupby('stockID')['qty_sold'].transform(
 Best Hyperparameters: {'learning_rate': 0.1, 'max_depth': 7, 'n_estimators': 300}
 Best Cross-Validation Score (Negative MAE): -2.58
 ```
+
+
+# Demand Forecasting & Inventory Agent Database Schema
+
+This document outlines the PostgreSQL relational database schema used to support the machine learning data pipeline and LangGraph agent operations.
+
+## 1. Dimension Tables (Static Data)
+These tables hold the core static entities of the retail network.
+
+### `stores`
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `store_id` | `SERIAL` | `PRIMARY KEY` | Unique identifier for each retail location. |
+| `location_name` | `VARCHAR(100)` | `NOT NULL` | City or neighborhood of the store. |
+
+### `items`
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `item_id` | `SERIAL` | `PRIMARY KEY` | Unique identifier for each product. |
+| `item_name` | `VARCHAR(150)` | `NOT NULL` | The name of the product. |
+| `category` | `VARCHAR(50)` | `NOT NULL` | The product family (e.g., Electronics, Consumables). |
+
+---
+
+## 2. Configuration Table (Logistics & Costs)
+This table provides the static logistics variables required by the prediction script to calculate operations research metrics.
+
+### `inventory_metadata`
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `store_id` | `INT` | `PK, FK` | References `stores(store_id)`. |
+| `item_id` | `INT` | `PK, FK` | References `items(item_id)`. |
+| `order_cost` | `DECIMAL(10,2)` | `NOT NULL` | The setup/shipping cost ($S$) per order. |
+| `annual_holding_cost`| `DECIMAL(10,2)` | `NOT NULL` | The cost to store one unit for a year ($H$). |
+| `lead_time_days` | `INT` | `DEFAULT 3` | Days it takes for stock to arrive. |
+
+---
+
+## 3. Fact Table (The ML Fuel)
+This is the core, high-velocity table queried by the data collection and modeling scripts to build temporal features and train the XGBoost algorithm.
+
+### `raw_transactions`
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `transaction_id` | `BIGSERIAL` | `PRIMARY KEY` | Unique ID for the daily aggregate. |
+| `date` | `DATE` | `NOT NULL` | The date of the sales record. |
+| `store_id` | `INT` | `FK` | References `stores(store_id)`. |
+| `item_id` | `INT` | `FK` | References `items(item_id)`. |
+| `sales` | `INT` | `NOT NULL` | Total units sold that day. |
+| `price` | `DECIMAL(10,2)` | `NOT NULL` | The selling price that day. |
+| `promo` | `INT` | `DEFAULT 0` | Binary indicator (1 = Promo, 0 = No Promo). |
+
+*Note: A composite index exists on `(date, store_id, item_id)` to ensure historical rolling-window queries execute rapidly.*
+
+---
+
+## 4. Tracking Table (Database-Level Feature Engineering)
+To optimize pipeline memory, this table pre-aggregates expanding statistical features, avoiding the need to recalculate complete historical data in Python.
+
+### `item_lifespan_stats`
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `store_id` | `INT` | `PK, FK` | References `stores(store_id)`. |
+| `item_id` | `INT` | `PK, FK` | References `items(item_id)`. |
+| `all_time_sales_total`| `BIGINT` | `DEFAULT 0` | The pre-calculated `expanding_sum`. |
+| `total_days_active` | `INT` | `DEFAULT 0` | The denominator for calculating the mean. |
+| `all_time_sales_avg` | `DECIMAL(10,2)` | `DEFAULT 0.00`| The pre-calculated `expanding_mean`. |
+
+*Note: This table is maintained automatically via a PostgreSQL `TRIGGER`. Inserting a new row into `raw_transactions` instantaneously updates these cumulative metrics.*
+
+---
+
+## 5. Output Table (Agent Interfacing & Evaluation)
+This table acts as the bridge between the ML pipeline and the business logic. It stores daily inferences for agent action and model evaluation.
+
+### `daily_predictions`
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `prediction_date` | `DATE` | `PK` | The future date this prediction applies to. |
+| `store_id` | `INT` | `PK, FK` | References `stores(store_id)`. |
+| `item_id` | `INT` | `PK, FK` | References `items(item_id)`. |
+| `predicted_demand` | `DECIMAL(10,2)` | `NOT NULL` | The $\hat{d}$ output from XGBoost. |
+| `rop` | `INT` | `NOT NULL` | Calculated Reorder Point. |
+| `eoq` | `INT` | `NOT NULL` | Calculated Economic Order Quantity. |
+| `created_at` | `TIMESTAMP` | `DEFAULT NOW()`| The exact system time the pipeline ran. |
