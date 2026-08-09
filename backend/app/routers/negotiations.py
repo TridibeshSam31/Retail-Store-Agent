@@ -37,7 +37,7 @@ def list_negotiations_for_store(store_id: int, db: Session = Depends(get_db),
                                  org_id: int = Depends(get_current_org_id)):
     turn_store_ids = db.query(NegotiationTurn.negotiation_id).filter(
         NegotiationTurn.store_id == store_id
-    ).subquery()
+    ).scalar_subquery()
     return db.query(Negotiation).filter(
         (Negotiation.initiator_store_id == store_id) |
         (Negotiation.negotiation_id.in_(turn_store_ids))

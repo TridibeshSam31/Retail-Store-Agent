@@ -4,6 +4,7 @@ from app.routers import (
     health, orgs, stores, store_distances, items, inventory_metadata,
     inventory, item_batches, transactions, lifespan_stats, predictions,
     suppliers, config, negotiations, transfers, supplier_contact, internal,
+    analytics, identity,
 )
 
 app = FastAPI(title="Multi-Store Agentic AI - Backend")
@@ -25,3 +26,5 @@ app.include_router(negotiations.router)
 app.include_router(transfers.router)
 app.include_router(supplier_contact.router)
 app.include_router(internal.router)
+app.include_router(analytics.router)
+app.include_router(identity.router)

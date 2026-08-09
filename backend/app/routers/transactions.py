@@ -5,7 +5,7 @@ from app.core.db import get_db
 from app.core.auth import get_current_org_id
 from app.models import RawTransaction, CurrentInventory
 from app.schemas.predictions import TransactionCreate, TransactionOut
-from app.services.trigger_service import check_immediately_low
+from app.services.trigger_service import check_immediately_low, maybe_recompute_batch
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -24,6 +24,10 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
         if inv:
             inv.qty_on_hand -= payload.sales
             check_immediately_low(db, payload.store_id, payload.item_id, inv.qty_on_hand)
+            # Batch-X count + might-be-low check — internally skipped if
+            # immediately-low just opened a negotiation for this item/store
+            # in the check above (PRD's skip-batch-if-immediately-low rule).
+            maybe_recompute_batch(db, org_id, payload.store_id, payload.item_id)
 
         db.commit()
     except Exception:
