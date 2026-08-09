@@ -5,8 +5,7 @@ pipeline/sample.csv
 lang-graph
 ml-part.sql
 raw_data.csv
-langgraph.md
 agent
-ml-part.md
 test.py
 tomorrow_predictions.csv
+synthetic_data/

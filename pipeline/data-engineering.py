@@ -1,9 +1,13 @@
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
+import os
 
-DB_URI = "postgresql+psycopg2://username:password@localhost:5432/your_database"
-engine = create_engine(DB_URI)
+load_dotenv()
+# Database Configuration
+DB_URL = os.getenv("DB_URL")
+engine = create_engine(DB_URL)
 
 def engineer_features():
     print("Engineering temporal features...")

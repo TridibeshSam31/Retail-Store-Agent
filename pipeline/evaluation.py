@@ -7,13 +7,26 @@ the system automatically triggers the retraining pipeline to generate a fresh .p
 """ 
 
 import pandas as pd
-from sklearn.metrics import mean_absolute_error
+# --- CHANGED START ---
+from sklearn.metrics import mean_absolute_percentage_error
+# --- CHANGED END ---
 from sqlalchemy import create_engine
 import subprocess
+from dotenv import load_dotenv
+import os
+# --- CHANGED START ---
+import sys
+# --- CHANGED END ---
 
-DB_URI = "postgresql+psycopg2://username:password@localhost:5432/your_database"
-engine = create_engine(DB_URI)
-MAE_THRESHOLD = 4.50
+load_dotenv()
+# Database Configuration
+DB_URL = os.getenv("DB_URL")
+engine = create_engine(DB_URL)
+
+# --- CHANGED START ---
+# Define a 20% global error threshold using MAPE
+MAPE_THRESHOLD = 0.20
+# --- CHANGED END ---
 
 def evaluate_model():
     print("Evaluating predictions against actuals for the past 7 days...")
@@ -36,16 +49,23 @@ def evaluate_model():
             print("No evaluation data available yet for the past 7 days.")
             return
 
-        # Calculates the overall MAE across all items, stores, and days in the 7-day window
-        mae_7_day_avg = mean_absolute_error(df_eval['actual_demand'], df_eval['predicted_demand'])
-        print(f"7-Day Rolling MAE: {mae_7_day_avg:.2f}")
+        # --- CHANGED START ---
+        # Calculates the overall MAPE across all items, stores, and days in the 7-day window
+        # Scikit-learn handles division by zero automatically under the hood
+        mape_7_day_avg = mean_absolute_percentage_error(df_eval['actual_demand'], df_eval['predicted_demand'])
         
-        if mae_7_day_avg > MAE_THRESHOLD:
-            print(f"ALERT: 7-Day MAE ({mae_7_day_avg:.2f}) exceeds threshold ({MAE_THRESHOLD}).")
+        # Display as a formatted percentage (e.g., 0.154 -> 15.4%)
+        print(f"7-Day Rolling MAPE: {mape_7_day_avg:.1%}")
+        
+        if mape_7_day_avg > MAPE_THRESHOLD:
+            print(f"ALERT: 7-Day MAPE ({mape_7_day_avg:.1%}) exceeds threshold ({MAPE_THRESHOLD:.1%}).")
             print("Triggering full model retrain on 3-year sliding window...")
-            subprocess.run(["python", "model.py"], check=True)
+            
+            # Using sys.executable guarantees the retrain runs in your active virtual environment
+            subprocess.run([sys.executable, "model.py"], check=True)
         else:
             print("Model performance is stable over the past week. No retrain required.")
+        # --- CHANGED END ---
             
     except Exception as e:
         print(f"Evaluation failed: {e}")

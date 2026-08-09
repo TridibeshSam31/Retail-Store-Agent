@@ -4,10 +4,13 @@
 import pandas as pd
 from sqlalchemy import create_engine
 import datetime
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 # Database Configuration
-DB_URI = "postgresql+psycopg2://username:password@localhost:5432/your_database"
-engine = create_engine(DB_URI)
+DB_URL = os.getenv("DB_URL")
+engine = create_engine(DB_URL)
 
 def collect_data():
     print("Collecting historical data from database...")
