@@ -1,3 +1,12 @@
 retail_sales.csv
 engineered_features.csv
 pipeline/sample.csv
+.env
+lang-graph
+ml-part.sql
+raw_data.csv
+langgraph.md
+agent
+ml-part.md
+test.py
+tomorrow_predictions.csv
