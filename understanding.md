@@ -53,3 +53,4 @@
 
 ### Why does this system exist at all, and what single cost or loss does it remove?
     - Manual checking of stock levels instead of doing whats best with their time. Agentic reports to analyze and make decisions for future.
+    
