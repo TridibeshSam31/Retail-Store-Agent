@@ -25,7 +25,3 @@ Health check: `GET /health`
 - `app/schemas/` — Pydantic request/response schemas
 - `app/routers/` — API route modules
 - `app/services/` — business logic (prediction hookup, trigger listener, transfer confirmation, supplier drafts)
-
-## Notes
-
-- Every data-access endpoint depends on `get_current_org_id` (`app/core/auth.py`) — org_id scoping is a hard boundary, not just a filter. Auth is currently a header stub (`X-Org-Id`); replace before real use.
