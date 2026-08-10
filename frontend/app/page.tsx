@@ -70,16 +70,16 @@ export default function RebuiltDayosHomepage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e5e5e5] text-zinc-900 font-sans selection:bg-black selection:text-white px-0 sm:px-4 py-0 sm:py-6">
+    <div className="min-h-screen bg-[#ececec] text-zinc-900 font-sans selection:bg-[#a3e635] selection:text-black py-0 sm:py-6 px-0 sm:px-4">
       
-      {/* ─── Centered Max-Width Brand Container ────────────────────────────────────────── */}
-      <div className="max-w-[1100px] mx-auto bg-[#f5f5f3] shadow-2xl rounded-none sm:rounded-[32px] overflow-hidden border border-zinc-200/80 flex flex-col relative">
+      {/* ─── Centered Max-Width Brand Site Canvas ────────────────────────────────────────── */}
+      <div className="max-w-[1150px] mx-auto bg-[#f5f5f3] shadow-2xl rounded-none sm:rounded-[32px] overflow-hidden border border-zinc-200 flex flex-col relative">
         
         {/* Floating background glowing mesh orb (lime-yellow accent in hero area) */}
         <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-gradient-to-br from-lime-300/10 via-yellow-200/5 to-transparent blur-[120px] rounded-full pointer-events-none z-0" />
 
         {/* ─── Navigation Header ────────────────────────────────────────── */}
-        <header className="px-6 py-5 md:px-10 flex items-center justify-between bg-[#f5f5f3]/85 backdrop-blur-md sticky top-0 z-30 border-b border-zinc-200/40">
+        <header className="px-6 py-5 md:px-10 flex items-center justify-between bg-[#f5f5f3] z-30 border-b border-zinc-200/40">
           <div className="flex items-center gap-3">
             <div className="size-7 rounded bg-black text-white flex items-center justify-center font-mono font-900 text-xs shadow-sm">
               N
@@ -105,16 +105,16 @@ export default function RebuiltDayosHomepage() {
           </button>
         </header>
 
-        {/* ─── Hero Section ─────────────────────────────────────────────── */}
-        <section id="platform" className="px-6 md:px-12 pt-16 pb-20 bg-[#f5f5f3] border-b border-zinc-200/60 relative z-10">
+        {/* ─── Hero Section (Flush background, no separate rounded cards) ────────────────────── */}
+        <section id="platform" className="px-6 md:px-12 pt-16 pb-24 bg-[#f5f5f3] relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             {/* Hero Text Left */}
             <div className="lg:col-span-7 space-y-6">
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-header font-700 tracking-tight leading-[0.88] text-black uppercase">
+              <h1 className="text-4xl sm:text-6xl lg:text-7.5xl font-header font-700 tracking-tight leading-[0.88] text-black uppercase">
                 YOUR STORES<br />
                 DON&apos;T HAVE TO<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500">SOLVE SHORTAGES</span><br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500 font-extrabold">SOLVE SHORTAGES</span><br />
                 ALONE.
               </h1>
               
@@ -146,13 +146,11 @@ export default function RebuiltDayosHomepage() {
 
             {/* Hero Right Visual: Connected Store Nodes & Arbitrator */}
             <div className="lg:col-span-5 flex justify-center relative">
-              {/* Radial gradient background behind the SVG for a glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-lime-300/20 to-yellow-300/10 blur-3xl rounded-full" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-lime-350/20 to-yellow-350/10 blur-3xl rounded-full" />
               
               <div className="relative size-64 sm:size-80 bg-zinc-900 rounded-3xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
-                {/* SVG Visual Composition representing stores and connection lines */}
                 <svg className="w-full h-full p-6" viewBox="0 0 200 200" fill="none">
-                  {/* Central connections with glowing neon stroke */}
+                  {/* Central connections */}
                   <line x1="40" y1="140" x2="100" y2="40" stroke="#facc15" strokeWidth="1.5" strokeDasharray="3 3" />
                   <line x1="160" y1="140" x2="100" y2="40" stroke="#a3e635" strokeWidth="1.5" strokeDasharray="3 3" />
                   <line x1="40" y1="140" x2="160" y2="140" stroke="#555" strokeWidth="1.5" />
@@ -178,8 +176,8 @@ export default function RebuiltDayosHomepage() {
                     <text x="160" y="118" textAnchor="middle" fill="#facc15" fontSize="7" fontWeight="bold" fontFamily="monospace">STORE 3</text>
                   </g>
                   
-                  {/* Arbitrator Element */}
-                  <circle cx="100" cy="115" r="16" fill="#ffffff" stroke="#a3e635" strokeWidth="2" className="shadow-lg" />
+                  {/* Arbitrator Node */}
+                  <circle cx="100" cy="115" r="16" fill="#ffffff" stroke="#a3e635" strokeWidth="2" />
                   <text x="100" y="118" textAnchor="middle" fill="#000" fontSize="9" fontWeight="900" fontFamily="monospace">A</text>
                 </svg>
               </div>
@@ -188,15 +186,15 @@ export default function RebuiltDayosHomepage() {
           </div>
         </section>
 
-        {/* ─── First Black Section (Large Rounded Top Edge) ────────────────────────────────── */}
-        <section id="how-it-works" className="bg-[#000000] text-white px-6 md:px-12 py-20 sm:py-24 rounded-t-[36px] -mt-6 z-10 space-y-20 relative overflow-hidden">
+        {/* ─── First Black Section (Flush Edge-to-Edge Container, Rounded Top Edge) ─────────── */}
+        <section id="how-it-works" className="bg-[#000000] text-white px-6 md:px-12 py-24 sm:py-32 rounded-t-[36px] relative overflow-hidden z-10">
           
           {/* Neon mesh glows inside black section */}
           <div className="absolute top-[20%] left-[-100px] w-96 h-96 bg-lime-500/10 blur-[130px] rounded-full pointer-events-none" />
           <div className="absolute bottom-[20%] right-[-100px] w-96 h-96 bg-yellow-500/10 blur-[130px] rounded-full pointer-events-none" />
 
           {/* Detect / Negotiate / Resolve Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-zinc-800 pb-16 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-zinc-800 pb-20 relative z-10">
             <div className="space-y-3.5">
               <h2 className="text-3xl font-header font-700 tracking-tight text-[#a3e635] uppercase">DETECT.</h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -218,7 +216,7 @@ export default function RebuiltDayosHomepage() {
           </div>
 
           {/* Large Editorial Statement */}
-          <div className="max-w-3xl space-y-6 pt-4 relative z-10">
+          <div className="max-w-3xl space-y-6 pt-16 relative z-10">
             <h2 className="text-4xl sm:text-6xl font-header font-700 tracking-tight leading-[0.92] uppercase text-white">
               STOP WATCHING<br />
               INVENTORY.<br />
@@ -233,12 +231,12 @@ export default function RebuiltDayosHomepage() {
           </div>
 
           {/* ─── Product Screenshot & Interactive Gateway Terminal Card ─── */}
-          <div className="space-y-8 pt-8 relative z-10">
+          <div className="space-y-12 pt-20 relative z-10">
             <div className="space-y-2">
               <h3 className="text-xs font-mono font-700 tracking-widest text-[#a3e635] uppercase">
-                Introducing the Store Network
+                INTRODUCING THE STORE NETWORK
               </h3>
-              <p className="text-xl font-header font-700 text-white uppercase">
+              <p className="text-2xl font-header font-700 text-white uppercase max-w-xl">
                 One view of every shortage, every negotiation, and every decision happening across your stores.
               </p>
             </div>
@@ -295,7 +293,7 @@ export default function RebuiltDayosHomepage() {
                 </div>
                 
                 <div className="space-y-1.5">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-zinc-850 border border-zinc-700 rounded-full text-[9px] font-mono font-700 text-[#a3e635] uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-zinc-855 border border-zinc-700 rounded-full text-[9px] font-mono font-700 text-[#a3e635] uppercase tracking-wider">
                     <span className="size-1.5 rounded-full bg-[#a3e635] animate-pulse-dot" />
                     Secure Identity Select
                   </span>
@@ -347,7 +345,7 @@ export default function RebuiltDayosHomepage() {
                             required
                             value={selectedStoreId}
                             onChange={(e) => setSelectedStoreId(e.target.value)}
-                            className="w-full px-3 py-3 border border-zinc-800 rounded-xl bg-black text-white focus:outline-none focus:border-[#a3e635] focus:ring-1 focus:ring-[#a3e635]/20 transition-all font-mono text-xs cursor-pointer"
+                            className="w-full px-3 py-3 border border-zinc-850 bg-black text-white focus:outline-none focus:border-[#a3e635] focus:ring-1 focus:ring-[#a3e635]/20 transition-all font-mono text-xs cursor-pointer"
                           >
                             <option value="">-- Choose Store Node --</option>
                             {stores?.map((store) => (
@@ -379,7 +377,7 @@ export default function RebuiltDayosHomepage() {
           </div>
 
           {/* Three Core Capabilities Section */}
-          <div className="space-y-12 pt-16 border-t border-zinc-800 relative z-10">
+          <div className="space-y-12 pt-20 border-t border-zinc-800 relative z-10">
             <div className="space-y-2">
               <h3 className="text-3xl font-header font-700 text-white uppercase tracking-tight">
                 Three Core Capabilities
@@ -392,7 +390,6 @@ export default function RebuiltDayosHomepage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Signals capability */}
               <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-6 space-y-4 hover:border-zinc-800 hover:shadow-[0_0_15px_rgba(163,230,53,0.04)] transition-all">
-                {/* Icon */}
                 <div className="size-10 rounded-xl bg-[#a3e635]/10 border border-[#a3e635]/20 flex items-center justify-center text-[#a3e635]">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4.5 16.5c-1.5-1.25-2.5-3.25-2.5-5.5s1-4.25 2.5-5.5" />
@@ -444,10 +441,10 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Light Gray Use-Case Section with Card Carousel ────────────────────────────────── */}
-        <section id="use-cases" className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-20 sm:py-24 rounded-[36px] my-6 space-y-12">
+        {/* ─── Light Gray Use-Case Section with Card Carousel (Flush Edge-to-Edge, Rounded Top Edge) ─ */}
+        <section id="use-cases" className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-24 sm:py-32 rounded-t-[36px] relative z-10">
           
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
             <div className="space-y-3">
               <h2 className="text-4xl sm:text-5xl font-header font-700 tracking-tight leading-[0.95] uppercase text-black">
                 SOLVE THE PROBLEMS<br />
@@ -582,8 +579,8 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Next White Section (Store Network Differentiator) ────────────────────────────────── */}
-        <section id="store-network" className="bg-[#ffffff] px-6 md:px-12 py-20 sm:py-24 space-y-16 relative overflow-hidden">
+        {/* ─── Next White Section (Store Network Differentiator, Flush, Rounded Top Edge) ───────── */}
+        <section id="store-network" className="bg-[#ffffff] px-6 md:px-12 py-24 sm:py-32 rounded-t-[36px] relative overflow-hidden z-10 -mt-8">
           
           <div className="absolute right-[-100px] top-[10%] w-[350px] h-[350px] bg-gradient-to-l from-lime-300/10 to-transparent blur-[120px] rounded-full pointer-events-none" />
 
@@ -624,13 +621,13 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Human Control Section ────────────────────────────────── */}
-        <section className="bg-[#ffffff] border-t border-zinc-200/80 px-6 md:px-12 py-20 sm:py-24 space-y-12">
+        {/* ─── Human Control Section (Continues in White, Flush) ────────────────────────────────── */}
+        <section className="bg-[#ffffff] px-6 md:px-12 py-20 sm:py-24 space-y-12 z-10 relative">
           
           <div className="max-w-2xl space-y-4">
             <h2 className="text-3xl sm:text-5xl font-header font-700 tracking-tight leading-[0.92] uppercase text-black">
               AI DOES THE THINKING.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500">YOU STAY IN CONTROL.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500 font-bold">YOU STAY IN CONTROL.</span>
             </h2>
             <div className="space-y-2 text-xs sm:text-sm text-zinc-650 leading-relaxed">
               <p>
@@ -654,10 +651,10 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Network Capability Grid Section ────────────────────────────────── */}
-        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-20 sm:py-24 rounded-[32px] my-6 space-y-12">
+        {/* ─── Network Capability Grid Section (Flush, Rounded Top Edge) ────────────────────────── */}
+        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-24 sm:py-32 rounded-t-[36px] relative z-10 -mt-8">
           
-          <div className="space-y-3">
+          <div className="space-y-3 mb-12">
             <h2 className="text-4xl font-header font-700 tracking-tight leading-[0.95] uppercase text-black">
               ONE NETWORK.<br />
               EVERY STORE.<br />
@@ -685,8 +682,8 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Built Around the Way Retail Actually Works Section ────────────────────────────────── */}
-        <section className="bg-[#ffffff] px-6 md:px-12 py-20 sm:py-24 space-y-8 text-center">
+        {/* ─── Built Around the Way Retail Actually Works (Flush, Rounded Top Edge) ──────────────── */}
+        <section className="bg-[#ffffff] px-6 md:px-12 py-24 sm:py-32 rounded-t-[36px] relative z-10 -mt-8 space-y-8 text-center shadow-sm">
           <div className="space-y-3">
             <h2 className="text-3xl font-header font-700 tracking-tight leading-[0.95] uppercase text-black">
               BUILT AROUND THE WAY RETAIL ACTUALLY WORKS.
@@ -712,8 +709,8 @@ export default function RebuiltDayosHomepage() {
           </div>
         </section>
 
-        {/* ─── Final CTA Section ────────────────────────────────── */}
-        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-20 sm:py-24 rounded-t-[32px] text-center space-y-6 relative overflow-hidden">
+        {/* ─── Final CTA Section (Flush, Rounded Top Edge) ───────────────────────────────────────── */}
+        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-24 sm:py-32 rounded-t-[36px] text-center space-y-6 relative overflow-hidden z-10 -mt-8">
           <div className="absolute inset-0 bg-gradient-to-t from-lime-300/10 to-transparent blur-3xl rounded-full pointer-events-none" />
           
           <h2 className="text-4xl sm:text-6xl font-header font-700 tracking-tight leading-[0.9] uppercase text-black relative z-10">
@@ -733,8 +730,8 @@ export default function RebuiltDayosHomepage() {
           </div>
         </section>
 
-        {/* ─── Footer ────────────────────────────────── */}
-        <footer className="bg-black text-white px-6 md:px-12 py-16 border-t border-zinc-900 text-xs space-y-12">
+        {/* ─── Footer (Flush, Rounded Top Edge) ─────────────────────────────────────────────────── */}
+        <footer className="bg-black text-white px-6 md:px-12 py-16 rounded-t-[36px] text-xs space-y-12 z-20 relative -mt-8">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             <div className="md:col-span-4 space-y-3">
               <span className="font-header font-700 tracking-wider text-xl uppercase text-white">NODE</span>
