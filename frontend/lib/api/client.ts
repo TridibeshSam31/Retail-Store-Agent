@@ -9,30 +9,30 @@
 
 import type {
   Store,
+  Org,
   Item,
   CurrentInventory,
   DailyPrediction,
   Negotiation,
   Transfer,
   Supplier,
-  ActivityEvent,
   ExpiryAlert,
   OrgConfiguration,
   UserSession,
   NegotiationStatus,
   InventoryTrigger,
+  SupplierContactDraft,
+  ActivityEvent,
 } from "@/types";
 
 import {
   DEMO_STORES,
   DEMO_ITEMS,
-  DEMO_SESSION,
   DEMO_INVENTORY,
   DEMO_PREDICTIONS,
   DEMO_NEGOTIATIONS,
   DEMO_TRANSFERS,
   DEMO_SUPPLIERS,
-  DEMO_ACTIVITY,
   DEMO_EXPIRY,
   DEMO_CONFIG,
 } from "@/lib/fixtures";
@@ -42,63 +42,84 @@ import {
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 const IS_DEMO = !BASE_URL;
 
+// ─── Header Injection ─────────────────────────────────────────
+
+function getHeaders(requireOrgId = true, requireStoreId = false): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (typeof window !== "undefined") {
+    if (requireOrgId) {
+      const orgId = localStorage.getItem("org_id");
+      if (orgId) {
+        headers["X-Org-Id"] = orgId;
+      }
+    }
+    if (requireStoreId) {
+      const storeId = localStorage.getItem("store_id");
+      if (storeId) {
+        headers["X-Store-Id"] = storeId;
+      }
+    }
+  }
+
+  return headers;
+}
+
 // ─── HTTP helpers ─────────────────────────────────────────────
 
-async function get<T>(path: string): Promise<T> {
+async function get<T>(path: string, requireOrgId = true, requireStoreId = false): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiClientError(body.error ?? "Request failed", res.status, body.code);
+    throw new ApiClientError(body.detail ?? body.error ?? "Request failed", res.status, body.code);
   }
-  const json = await res.json();
-  return json.data ?? json;
+  return res.json();
 }
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
+async function post<T>(path: string, body?: unknown, requireOrgId = true, requireStoreId = false): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new ApiClientError(err.error ?? "Request failed", res.status, err.code);
+    throw new ApiClientError(err.detail ?? err.error ?? "Request failed", res.status, err.code);
   }
-  const json = await res.json();
-  return json.data ?? json;
+  return res.json();
 }
 
-async function put<T>(path: string, body?: unknown): Promise<T> {
+async function put<T>(path: string, body?: unknown, requireOrgId = true, requireStoreId = false): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new ApiClientError(err.error ?? "Request failed", res.status, err.code);
+    throw new ApiClientError(err.detail ?? err.error ?? "Request failed", res.status, err.code);
   }
-  const json = await res.json();
-  return json.data ?? json;
+  return res.json();
 }
 
-async function del<T>(path: string): Promise<T> {
+async function del<T>(path: string, requireOrgId = true, requireStoreId = false): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new ApiClientError(err.error ?? "Request failed", res.status, err.code);
+    throw new ApiClientError(err.detail ?? err.error ?? "Request failed", res.status, err.code);
   }
-  const json = await res.json();
-  return json.data ?? json;
+  return res.json();
 }
 
 export class ApiClientError extends Error {
@@ -116,50 +137,96 @@ export class ApiClientError extends Error {
 
 const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 
-// ─── Auth / Session ───────────────────────────────────────────
+// ─── Identity / Login ─────────────────────────────────────────
 
-export async function getSession(): Promise<UserSession> {
-  if (IS_DEMO) { await delay(); return DEMO_SESSION; }
-  return get<UserSession>("/api/auth/session");
+export async function getOrgs(): Promise<Org[]> {
+  if (IS_DEMO) {
+    await delay();
+    return [{ org_id: 1, org_name: "RetailCo India" }];
+  }
+  return get<Org[]>("/identity/orgs", false, false);
+}
+
+export async function getStoresForPicker(orgId: number): Promise<Store[]> {
+  if (IS_DEMO) {
+    await delay();
+    return DEMO_STORES.map(s => ({ ...s, org_id: orgId }));
+  }
+  return get<Store[]>(`/identity/stores?org_id=${orgId}`, false, false);
+}
+
+export async function selectIdentity(orgId: number, storeId: number): Promise<UserSession> {
+  if (IS_DEMO) {
+    await delay();
+    return {
+      org_id: orgId,
+      store_id: storeId,
+      location_name: DEMO_STORES.find(s => s.store_id === storeId)?.location_name ?? "Store 1",
+      expiry_alerts: DEMO_EXPIRY,
+    };
+  }
+  return post<UserSession>(`/identity/select?org_id=${orgId}&store_id=${storeId}`, null, false, false);
+}
+
+// ─── Config Panel (Orgs & Stores) ──────────────────────────────
+
+export async function createOrg(orgName: string): Promise<Org> {
+  if (IS_DEMO) { await delay(); return { org_id: 99, org_name: orgName }; }
+  return post<Org>("/orgs", { org_name: orgName }, false, false);
+}
+
+export async function deleteOrg(id: number): Promise<void> {
+  if (IS_DEMO) { await delay(); return; }
+  return del<void>(`/orgs/${id}`, false, false);
+}
+
+export async function createStore(data: { org_id: number; location_name: string; latitude?: number; longitude?: number }): Promise<Store> {
+  if (IS_DEMO) { await delay(); return { store_id: 99, ...data }; }
+  return post<Store>("/stores", data, false, false);
+}
+
+export async function deleteStore(id: number): Promise<void> {
+  if (IS_DEMO) { await delay(); return; }
+  return del<void>(`/stores/${id}`, false, false);
 }
 
 // ─── Stores ──────────────────────────────────────────────────
 
 export async function getStores(): Promise<Store[]> {
-  if (IS_DEMO) { await delay(); return DEMO_STORES; }
-  return get<Store[]>("/api/stores");
+  if (IS_DEMO) { await delay(); return DEMO_STORES.map(s => ({ ...s, org_id: 1 })); }
+  return get<Store[]>("/stores");
 }
 
 export async function getStore(id: number): Promise<Store> {
-  if (IS_DEMO) { await delay(); return DEMO_STORES.find((s) => s.store_id === id)!; }
-  return get<Store>(`/api/stores/${id}`);
+  if (IS_DEMO) { await delay(); return DEMO_STORES.map(s => ({ ...s, org_id: 1 })).find((s) => s.store_id === id)!; }
+  return get<Store>(`/stores/${id}`);
 }
 
 // ─── Items ───────────────────────────────────────────────────
 
 export async function getItems(): Promise<Item[]> {
   if (IS_DEMO) { await delay(); return DEMO_ITEMS; }
-  return get<Item[]>("/api/items");
+  return get<Item[]>("/items");
 }
 
 export async function getItem(id: number): Promise<Item> {
   if (IS_DEMO) { await delay(); return DEMO_ITEMS.find((i) => i.item_id === id)!; }
-  return get<Item>(`/api/items/${id}`);
+  return get<Item>(`/items/${id}`);
 }
 
 export async function createItem(data: Omit<Item, "item_id">): Promise<Item> {
   if (IS_DEMO) { await delay(800); return { item_id: 99, ...data }; }
-  return post<Item>("/api/items", data);
+  return post<Item>("/items", data);
 }
 
 export async function updateItem(id: number, data: Partial<Item>): Promise<Item> {
   if (IS_DEMO) { await delay(800); return { ...DEMO_ITEMS.find((i) => i.item_id === id)!, ...data }; }
-  return put<Item>(`/api/items/${id}`, data);
+  return put<Item>(`/items/${id}`, data);
 }
 
 export async function deleteItem(id: number): Promise<void> {
   if (IS_DEMO) { await delay(600); return; }
-  return del<void>(`/api/items/${id}`);
+  return del<void>(`/items/${id}`);
 }
 
 // ─── Inventory ────────────────────────────────────────────────
@@ -169,44 +236,61 @@ export interface InventoryFilters {
   item_id?: number;
   trigger?: InventoryTrigger | "all";
   search?: string;
-  page?: number;
-  page_size?: number;
 }
 
 export async function getInventory(filters?: InventoryFilters): Promise<CurrentInventory[]> {
+  let data: CurrentInventory[];
+  
   if (IS_DEMO) {
     await delay();
-    let data = DEMO_INVENTORY;
-    if (filters?.store_id) data = data.filter((i) => i.store_id === filters.store_id);
-    if (filters?.trigger && filters.trigger !== "all") {
-      data = data.filter((i) => i.trigger === filters.trigger);
+    data = DEMO_INVENTORY;
+  } else {
+    if (filters?.store_id) {
+      data = await get<CurrentInventory[]>(`/inventory/store/${filters.store_id}`);
+    } else {
+      data = await get<CurrentInventory[]>("/inventory");
     }
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      data = data.filter(
-        (i) =>
-          i.item?.item_name.toLowerCase().includes(q) ||
-          i.item?.category.toLowerCase().includes(q) ||
-          i.store?.location_name.toLowerCase().includes(q),
-      );
-    }
-    return data;
   }
-  const params = new URLSearchParams();
-  if (filters?.store_id) params.set("store_id", String(filters.store_id));
-  if (filters?.trigger && filters.trigger !== "all") params.set("trigger", filters.trigger);
-  if (filters?.search) params.set("search", filters.search);
-  return get<CurrentInventory[]>(`/api/inventory?${params}`);
+
+  // Common client-side filtering
+  if (filters?.store_id) {
+    data = data.filter((i) => i.store_id === filters.store_id);
+  }
+  if (filters?.trigger && filters.trigger !== "all") {
+    data = data.filter((i) => {
+      const trigger = i.prediction ? (i.qty_on_hand <= i.prediction.rop ? "immediately_low" : "might_be_low") : null;
+      return trigger === filters.trigger;
+    });
+  }
+  if (filters?.search) {
+    const q = filters.search.toLowerCase();
+    data = data.filter(
+      (i) =>
+        i.item?.item_name.toLowerCase().includes(q) ||
+        i.item?.category.toLowerCase().includes(q) ||
+        i.store?.location_name.toLowerCase().includes(q),
+    );
+  }
+
+  return data;
 }
 
-export async function getInventoryItem(id: number): Promise<CurrentInventory> {
-  if (IS_DEMO) { await delay(); return DEMO_INVENTORY.find((i) => i.id === id)!; }
-  return get<CurrentInventory>(`/api/inventory/${id}`);
+export async function getInventoryItem(storeId: number, itemId: number): Promise<CurrentInventory> {
+  if (IS_DEMO) {
+    await delay();
+    return DEMO_INVENTORY.find((i) => i.store_id === storeId && i.item_id === itemId)!;
+  }
+  return get<CurrentInventory>(`/inventory/${storeId}/${itemId}`);
 }
 
-export async function updateInventoryItem(id: number, data: Partial<CurrentInventory>): Promise<CurrentInventory> {
-  if (IS_DEMO) { await delay(800); return { ...DEMO_INVENTORY.find((i) => i.id === id)!, ...data }; }
-  return put<CurrentInventory>(`/api/inventory/${id}`, data);
+export async function updateInventoryItem(storeId: number, itemId: number, qtyOnHand: number): Promise<CurrentInventory> {
+  if (IS_DEMO) {
+    await delay(800);
+    const item = DEMO_INVENTORY.find((i) => i.store_id === storeId && i.item_id === itemId)!;
+    item.qty_on_hand = qtyOnHand;
+    return item;
+  }
+  return put<CurrentInventory>(`/inventory/${storeId}/${itemId}`, { store_id: storeId, item_id: itemId, qty_on_hand: qtyOnHand });
 }
 
 // ─── Predictions ──────────────────────────────────────────────
@@ -218,8 +302,10 @@ export async function getPredictions(storeId?: number): Promise<DailyPrediction[
       ? DEMO_PREDICTIONS.filter((p) => p.store_id === storeId)
       : DEMO_PREDICTIONS;
   }
-  const params = storeId ? `?store_id=${storeId}` : "";
-  return get<DailyPrediction[]>(`/api/predictions${params}`);
+  if (storeId) {
+    return get<DailyPrediction[]>(`/predictions/store/${storeId}`);
+  }
+  return get<DailyPrediction[]>("/predictions");
 }
 
 // ─── Negotiations ─────────────────────────────────────────────
@@ -227,7 +313,6 @@ export async function getPredictions(storeId?: number): Promise<DailyPrediction[
 export interface NegotiationFilters {
   status?: NegotiationStatus | "all";
   store_id?: number;
-  item_id?: number;
 }
 
 export async function getNegotiations(filters?: NegotiationFilters): Promise<Negotiation[]> {
@@ -239,17 +324,15 @@ export async function getNegotiations(filters?: NegotiationFilters): Promise<Neg
     }
     if (filters?.store_id) {
       data = data.filter(
-        (n) =>
-          n.initiating_store_id === filters.store_id ||
-          n.context?.participating_store_ids.includes(filters.store_id!),
+        (n) => n.initiating_store_id === filters.store_id
       );
     }
     return data;
   }
-  const params = new URLSearchParams();
-  if (filters?.status && filters.status !== "all") params.set("status", filters.status);
-  if (filters?.store_id) params.set("store_id", String(filters.store_id));
-  return get<Negotiation[]>(`/api/negotiations?${params}`);
+  if (filters?.store_id) {
+    return get<Negotiation[]>(`/negotiations/store/${filters.store_id}`);
+  }
+  return get<Negotiation[]>("/negotiations");
 }
 
 export async function getNegotiation(id: number): Promise<Negotiation> {
@@ -259,39 +342,42 @@ export async function getNegotiation(id: number): Promise<Negotiation> {
     if (!neg) throw new ApiClientError("Negotiation not found", 404, "NOT_FOUND");
     return neg;
   }
-  return get<Negotiation>(`/api/negotiations/${id}`);
+  return get<Negotiation>(`/negotiations/${id}`);
 }
 
-export async function approveTransfer(
-  negotiationId: number,
-  transferId: number,
-): Promise<Transfer> {
-  if (IS_DEMO) {
-    await delay(1200);
-    const t = DEMO_TRANSFERS.find((t) => t.transfer_id === transferId);
-    if (!t) throw new ApiClientError("Transfer not found", 404, "NOT_FOUND");
-    return { ...t, parties: t.parties.map((p) => ({ ...p, status: "pending" as const })) };
-  }
-  return post<Transfer>(`/api/negotiations/${negotiationId}/approve`);
-}
-
-export async function rejectTransfer(
-  negotiationId: number,
-): Promise<void> {
-  if (IS_DEMO) { await delay(800); return; }
-  return post<void>(`/api/negotiations/${negotiationId}/reject`);
-}
-
-export async function renegotiate(
-  negotiationId: number,
-  argument?: string,
-): Promise<Negotiation> {
+export async function approveTransfer(negotiationId: number): Promise<void> {
   if (IS_DEMO) {
     await delay(1000);
-    const neg = DEMO_NEGOTIATIONS.find((n) => n.negotiation_id === negotiationId);
-    return { ...neg!, status: "proposed" };
+    return;
   }
-  return post<Negotiation>(`/api/negotiations/${negotiationId}/renegotiate`, { argument });
+  return post<void>(`/negotiations/${negotiationId}/approve`);
+}
+
+export async function rejectTransfer(negotiationId: number): Promise<void> {
+  if (IS_DEMO) {
+    await delay(800);
+    return;
+  }
+  return post<void>(`/negotiations/${negotiationId}/reject`);
+}
+
+export async function addNegotiationTurn(
+  negotiationId: number,
+  data: { store_id: number; turn_number: number; argument_text?: string; responded?: boolean }
+): Promise<void> {
+  if (IS_DEMO) {
+    await delay(800);
+    return;
+  }
+  return post<void>(`/negotiations/${negotiationId}/turns`, data);
+}
+
+export async function cancelNegotiation(negotiationId: number): Promise<void> {
+  if (IS_DEMO) {
+    await delay(600);
+    return;
+  }
+  return post<void>(`/negotiations/${negotiationId}/cancel`);
 }
 
 // ─── Transfers ────────────────────────────────────────────────
@@ -301,44 +387,43 @@ export async function getTransfers(storeId?: number): Promise<Transfer[]> {
     await delay();
     return storeId
       ? DEMO_TRANSFERS.filter(
-          (t) => t.source_store_id === storeId || t.destination_store_id === storeId,
+          (t) => t.from_store_id === storeId || t.to_store_id === storeId,
         )
       : DEMO_TRANSFERS;
   }
-  const params = storeId ? `?store_id=${storeId}` : "";
-  return get<Transfer[]>(`/api/transfers${params}`);
+  if (storeId) {
+    return get<Transfer[]>(`/transfers/store/${storeId}`);
+  }
+  return get<Transfer[]>("/transfers");
 }
 
-export async function confirmTransfer(
-  transferId: number,
-  storeId: number,
-): Promise<Transfer> {
+export async function confirmTransferShipment(transferId: number): Promise<Transfer> {
   if (IS_DEMO) {
     await delay(1000);
     const t = DEMO_TRANSFERS.find((t) => t.transfer_id === transferId);
     if (!t) throw new ApiClientError("Transfer not found", 404, "NOT_FOUND");
-    return {
-      ...t,
-      parties: t.parties.map((p) =>
-        p.store_id === storeId
-          ? { ...p, status: "confirmed" as const, confirmed_at: new Date().toISOString() }
-          : p,
-      ),
-    };
+    t.from_confirmed = true;
+    t.to_confirmed = true;
+    t.is_complete = true;
+    return t;
   }
-  return post<Transfer>(`/api/transfers/${transferId}/confirm`, { store_id: storeId });
+  // This confirm route requires X-Store-Id header
+  return post<Transfer>(`/transfers/${transferId}/confirm`, null, true, true);
 }
 
-// ─── Suppliers ────────────────────────────────────────────────
+// ─── Suppliers & Contact Drafts ────────────────────────────────
 
-export async function getSuppliers(): Promise<Supplier[]> {
+export async function getSuppliers(storeId?: number): Promise<Supplier[]> {
   if (IS_DEMO) { await delay(); return DEMO_SUPPLIERS; }
-  return get<Supplier[]>("/api/suppliers");
+  if (storeId) {
+    return get<Supplier[]>(`/suppliers/store/${storeId}`);
+  }
+  return get<Supplier[]>("/suppliers");
 }
 
 export async function createSupplier(data: Omit<Supplier, "supplier_id">): Promise<Supplier> {
   if (IS_DEMO) { await delay(800); return { supplier_id: 99, ...data }; }
-  return post<Supplier>("/api/suppliers", data);
+  return post<Supplier>("/suppliers", data);
 }
 
 export async function updateSupplier(id: number, data: Partial<Supplier>): Promise<Supplier> {
@@ -346,34 +431,34 @@ export async function updateSupplier(id: number, data: Partial<Supplier>): Promi
     await delay(800);
     return { ...DEMO_SUPPLIERS.find((s) => s.supplier_id === id)!, ...data };
   }
-  return put<Supplier>(`/api/suppliers/${id}`, data);
+  return put<Supplier>(`/suppliers/${id}`, data);
 }
 
 export async function deleteSupplier(id: number): Promise<void> {
   if (IS_DEMO) { await delay(600); return; }
-  return del<void>(`/api/suppliers/${id}`);
+  return del<void>(`/suppliers/${id}`);
 }
 
-export async function getSupplierDraft(
-  negotiationId: number,
-): Promise<{ draft_message: string; deep_link?: string; supplier?: Supplier } | null> {
+export async function getSupplierDraft(negotiationId: number): Promise<SupplierContactDraft> {
   if (IS_DEMO) {
     await delay(800);
     return {
-      draft_message:
+      has_supplier: true,
+      message:
         "Dear Karnataka Grains Wholesale,\n\nWe urgently require 30 kg of Toor Dal for Store 3 (Whitefield). Our current stock has fallen below the reorder threshold with predicted demand of 28 kg in the next 3 days.\n\nPlease confirm availability and earliest delivery.\n\nRegards,\nStore 3 Manager",
-      deep_link: "https://wa.me/919876543210?text=",
-      supplier: DEMO_SUPPLIERS[0],
+      channel: "whatsapp",
+      link: "https://wa.me/919876543210?text=",
     };
   }
-  return get(`/api/negotiations/${negotiationId}/supplier-draft`);
+  return get<SupplierContactDraft>(`/supplier-contact/${negotiationId}`);
 }
 
-// ─── Activity ─────────────────────────────────────────────────
-
-export async function getActivity(limit = 20): Promise<ActivityEvent[]> {
-  if (IS_DEMO) { await delay(); return DEMO_ACTIVITY.slice(0, limit); }
-  return get<ActivityEvent[]>(`/api/activity?limit=${limit}`);
+export async function markSupplierDraftSent(negotiationId: number): Promise<void> {
+  if (IS_DEMO) {
+    await delay(600);
+    return;
+  }
+  return post<void>(`/supplier-contact/${negotiationId}/sent`);
 }
 
 // ─── Expiry ───────────────────────────────────────────────────
@@ -385,18 +470,48 @@ export async function getExpiryAlerts(storeId?: number): Promise<ExpiryAlert[]> 
       ? DEMO_EXPIRY.filter((e) => e.store_id === storeId)
       : DEMO_EXPIRY;
   }
-  const params = storeId ? `?store_id=${storeId}` : "";
-  return get<ExpiryAlert[]>(`/api/expiry${params}`);
+  if (storeId) {
+    return get<ExpiryAlert[]>(`/item-batches/expiring/store/${storeId}`);
+  }
+  return get<ExpiryAlert[]>("/item-batches/expiring");
 }
 
 // ─── Configuration ────────────────────────────────────────────
 
 export async function getConfiguration(): Promise<OrgConfiguration> {
   if (IS_DEMO) { await delay(); return DEMO_CONFIG; }
-  return get<OrgConfiguration>("/api/configuration");
+  return get<OrgConfiguration>("/config");
 }
 
 export async function updateConfiguration(data: Partial<OrgConfiguration>): Promise<OrgConfiguration> {
   if (IS_DEMO) { await delay(800); return { ...DEMO_CONFIG, ...data }; }
-  return put<OrgConfiguration>("/api/configuration", data);
+  return put<OrgConfiguration>("/config", data);
+}
+
+// ─── Activity timeline feed ───────────────────────────────────
+
+export async function getActivity(limit = 20): Promise<ActivityEvent[]> {
+  // Activity Event timeline is driven by /negotiations history feed
+  if (IS_DEMO) {
+    await delay();
+    return DEMO_NEGOTIATIONS.slice(0, limit).map(n => ({
+      event_id: n.negotiation_id,
+      event_type: n.status === "completed" ? "negotiation_completed" : "negotiation_started",
+      negotiation_id: n.negotiation_id,
+      description: `Negotiation #${n.negotiation_id} status updated to ${n.status}`,
+      created_at: n.created_at,
+      store_id: n.initiating_store_id,
+      store: n.initiating_store,
+    }));
+  }
+  const negotiations = await getNegotiations();
+  return negotiations.slice(0, limit).map(n => ({
+    event_id: n.negotiation_id,
+    event_type: n.status === "completed" ? "negotiation_completed" : "negotiation_started",
+    negotiation_id: n.negotiation_id,
+    description: `Negotiation #${n.negotiation_id} status updated to ${n.status}`,
+    created_at: n.created_at,
+    store_id: n.initiating_store_id,
+    store: n.initiating_store,
+  }));
 }

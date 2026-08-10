@@ -69,7 +69,7 @@ export default function ExpiryPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {alerts?.map((alert) => {
-                    const days = alert.days_until_expiry;
+                    const days = alert.days_until_expiry ?? 7;
                     const isCritical = days <= 1;
                     const isWarning = days > 1 && days <= 3;
 
@@ -85,9 +85,9 @@ export default function ExpiryPage() {
                           <StoreBadge storeId={alert.store_id} storeName={alert.store?.location_name.split(" — ")[1]} size="sm" />
                         </td>
                         <td className="px-4 py-3.5 text-right font-700 text-zinc-700">
-                          {formatQuantity(alert.quantity, alert.unit)}
+                          {formatQuantity(alert.qty, alert.item?.unit ?? "units")}
                         </td>
-                        <td className="px-4 py-3.5 font-600 text-zinc-650">{formatDate(alert.expiry_date)}</td>
+                        <td className="px-4 py-3.5 font-600 text-zinc-650">{alert.expiry_date ? formatDate(alert.expiry_date) : "-"}</td>
                         <td className="px-4 py-3.5">
                           <span
                             className={cn(

@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
-import { getTransfers, confirmTransfer } from "@/lib/api/client";
+import { getTransfers, confirmTransferShipment } from "@/lib/api/client";
 import { StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDateTime } from "@/lib/formatting";
@@ -11,6 +13,16 @@ import { cn } from "@/lib/utils";
 
 export default function TransfersPage() {
   const queryClient = useQueryClient();
+  const [storeId, setStoreId] = useState<number>(1);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedStoreId = localStorage.getItem("store_id");
+      if (savedStoreId) {
+        setStoreId(Number(savedStoreId));
+      }
+    }
+  }, []);
 
   const { data: transfers, isLoading, error, refetch } = useQuery({
     queryKey: ["transfers"],
@@ -18,8 +30,8 @@ export default function TransfersPage() {
   });
 
   const confirmMutation = useMutation({
-    mutationFn: ({ transferId, storeId }: { transferId: number; storeId: number }) =>
-      confirmTransfer(transferId, storeId),
+    mutationFn: ({ transferId }: { transferId: number }) =>
+      confirmTransferShipment(transferId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transfers"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
@@ -86,12 +98,10 @@ export default function TransfersPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {transfers?.map((xfer) => {
-                    // Check if current manager user (Store 1) is involved and needs to confirm
-                    const isSourceStore = xfer.source_store_id === 1;
-                    const isDestStore = xfer.destination_store_id === 1;
+                    const isSourceStore = xfer.from_store_id === storeId;
+                    const isDestStore = xfer.to_store_id === storeId;
                     const isStoreInvolved = isSourceStore || isDestStore;
-                    const myStoreParty = xfer.parties.find((p) => p.store_id === 1);
-                    const isAlreadyConfirmed = myStoreParty?.status === "confirmed";
+                    const isAlreadyConfirmed = isSourceStore ? xfer.from_confirmed : xfer.to_confirmed;
                     const isActionRequired = isStoreInvolved && !isAlreadyConfirmed;
 
                     return (
@@ -104,33 +114,36 @@ export default function TransfersPage() {
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
-                            <StoreBadge storeId={xfer.source_store_id} storeName={xfer.source_store?.location_name.split(" — ")[1]} size="sm" />
+                            <StoreBadge storeId={xfer.from_store_id} storeName={xfer.source_store?.location_name.split(" — ")[1]} size="sm" />
                             <span className="text-zinc-300">→</span>
-                            <StoreBadge storeId={xfer.destination_store_id} storeName={xfer.destination_store?.location_name.split(" — ")[1]} size="sm" />
+                            <StoreBadge storeId={xfer.to_store_id} storeName={xfer.destination_store?.location_name.split(" — ")[1]} size="sm" />
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-right font-700 text-zinc-800">
-                          {formatQuantity(xfer.quantity, xfer.unit)}
+                          {formatQuantity(xfer.qty, xfer.item?.unit ?? "units")}
                         </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex gap-2 flex-wrap">
-                            {xfer.parties.map((p) => {
-                              const isConfirmed = p.status === "confirmed";
-                              return (
-                                <span
-                                  key={p.store_id}
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded text-[10px] font-600 border uppercase flex items-center gap-1",
-                                    isConfirmed
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-150"
-                                      : "bg-amber-50 text-amber-700 border-amber-150 animate-pulse-dot"
-                                  )}
-                                >
-                                  <span className={cn("size-1 rounded-full", isConfirmed ? "bg-emerald-500" : "bg-amber-500")} />
-                                  S{p.store_id}: {isConfirmed ? "Sent/Rcvd" : "Pending"}
-                                </span>
-                              );
-                            })}
+                        <td className="px-4 py-3.5 space-y-1">
+                          <div className="flex flex-col gap-1">
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-700 border uppercase flex items-center gap-1 w-max",
+                                xfer.from_confirmed
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-150"
+                                  : "bg-amber-50 text-amber-700 border-amber-150 animate-pulse-dot"
+                              )}
+                            >
+                              S{xfer.from_store_id} (Src): {xfer.from_confirmed ? "Dispatched" : "Pending"}
+                            </span>
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-700 border uppercase flex items-center gap-1 w-max",
+                                xfer.to_confirmed
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-150"
+                                  : "bg-amber-50 text-amber-700 border-amber-150"
+                              )}
+                            >
+                              S{xfer.to_store_id} (Dst): {xfer.to_confirmed ? "Received" : "Pending"}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-zinc-450">{formatDateTime(xfer.created_at)}</td>
@@ -140,13 +153,13 @@ export default function TransfersPage() {
                               size="sm"
                               variant="primary"
                               loading={confirmMutation.isPending && confirmMutation.variables?.transferId === xfer.transfer_id}
-                              onClick={() => confirmMutation.mutate({ transferId: xfer.transfer_id, storeId: 1 })}
+                              onClick={() => confirmMutation.mutate({ transferId: xfer.transfer_id })}
                             >
-                              Confirm Load
+                              Confirm Shipment
                             </Button>
                           ) : (
                             <span className="text-[10px] text-zinc-400 font-600 uppercase bg-zinc-100 px-1.5 py-0.5 border rounded">
-                              {xfer.is_complete ? "Completed" : "Awaiting Others"}
+                              {xfer.is_complete ? "Completed" : "Awaiting Partner"}
                             </span>
                           )}
                         </td>

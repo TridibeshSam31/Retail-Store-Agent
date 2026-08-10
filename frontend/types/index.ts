@@ -1,17 +1,43 @@
 // ============================================================
-// Core entity types — derived from ml-part.sql schema
-// and project documentation
+// Identity & Session Types
 // ============================================================
+
+export interface Org {
+  org_id: number;
+  org_name: string;
+}
 
 export interface Store {
   store_id: number;
+  org_id: number;
   location_name: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface UserSession {
+  org_id: number;
+  store_id: number;
+  location_name: string;
+  expiry_alerts: ExpiryAlert[];
+}
+
+// ============================================================
+// Core Database Entity Types
+// ============================================================
+
+export interface StoreDistance {
+  store_id_a: number;
+  store_id_b: number;
+  tier: "near" | "medium" | "far";
+  est_hours: number;
 }
 
 export interface Item {
   item_id: number;
   item_name: string;
   category: string;
+  unit: string;
 }
 
 export interface InventoryMetadata {
@@ -22,73 +48,77 @@ export interface InventoryMetadata {
   lead_time_days: number;
 }
 
+export interface CurrentInventory {
+  store_id: number;
+  item_id: number;
+  qty_on_hand: number;
+  // Joined fields for frontend presentation convenience
+  item?: Item;
+  store?: Store;
+  prediction?: DailyPrediction;
+  time_to_stockout?: number | null; // from /analytics/time-to-stockout
+}
+
+export interface ExpiryAlert {
+  batch_id: number;
+  store_id: number;
+  item_id: number;
+  qty: number;
+  expiry_date?: string; // YYYY-MM-DD
+  // Joined fields for frontend
+  item?: Item;
+  store?: Store;
+  days_until_expiry?: number;
+}
+
 export interface RawTransaction {
   transaction_id: number;
-  date: string;
+  date: string; // YYYY-MM-DD
   store_id: number;
   item_id: number;
   sales: number;
   price: number;
-  promo: 0 | 1;
+  promo?: number; // 0 or 1
+}
+
+export interface LifespanStats {
+  store_id: number;
+  item_id: number;
+  all_time_sales_total: number;
+  total_days_active: number;
+  all_time_sales_avg: number;
 }
 
 export interface DailyPrediction {
-  prediction_date: string;
+  prediction_date: string; // YYYY-MM-DD
   store_id: number;
   item_id: number;
   predicted_demand: number;
-  rop: number; // reorder point
-  eoq: number; // economic order quantity
+  rop: number;
+  eoq: number;
   created_at: string;
 }
-
-// ============================================================
-// Inventory — current stock state
-// ============================================================
-
-export type InventoryTrigger = "might_be_low" | "immediately_low" | null;
-
-export interface CurrentInventory {
-  id: number;
-  store_id: number;
-  item_id: number;
-  current_quantity: number;
-  unit: string;
-  trigger: InventoryTrigger;
-  updated_at: string;
-  // Joined fields
-  store?: Store;
-  item?: Item;
-  prediction?: DailyPrediction;
-}
-
-export interface InventoryBatch {
-  batch_id: number;
-  store_id: number;
-  item_id: number;
-  quantity: number;
-  expiry_date: string;
-  unit: string;
-}
-
-// ============================================================
-// Supplier
-// ============================================================
 
 export type SupplierChannel = "whatsapp" | "email" | "phone";
 
 export interface Supplier {
   supplier_id: number;
+  store_id?: number;
+  item_id?: number;
   name: string;
   phone?: string;
   email?: string;
-  preferred_channel: SupplierChannel;
-  item_id?: number;
-  store_id?: number;
+  pref: SupplierChannel;
+}
+
+export interface OrgConfiguration {
+  org_id: number;
+  batch_x: number;
+  max_negotiation_turns: number;
 }
 
 // ============================================================
-// Negotiation
+// Agent Negotiations & Turns
 // ============================================================
 
 export type NegotiationStatus =
@@ -98,7 +128,7 @@ export type NegotiationStatus =
   | "aborted"
   | "completed";
 
-export type NegotiationTrigger = "might_be_low" | "immediately_low";
+export type NegotiationTriggerType = "might_be_low" | "immediately_low";
 
 export type ResolutionType =
   | "transfer"
@@ -106,124 +136,71 @@ export type ResolutionType =
   | "supplier"
   | "cancelled";
 
-export type NegotiationTurnRole = "store_agent" | "arbitrator";
-export type NegotiationTurnOutcome = "responded" | "skipped" | "timed_out";
-
 export interface NegotiationTurn {
   turn_id: number;
   negotiation_id: number;
+  store_id: number | null; // null = arbitrator
   turn_number: number;
-  speaker_store_id: number | null; // null = arbitrator
-  role: NegotiationTurnRole;
-  argument: string;
-  outcome: NegotiationTurnOutcome;
+  argument_text?: string;
+  responded?: boolean;
   created_at: string;
-  // Joined
-  speaker_store?: Store;
-}
-
-export interface TransferAllocation {
-  store_id: number;
-  quantity: number;
-  unit: string;
-  store?: Store;
-}
-
-export interface NegotiationResolution {
-  resolution_type: ResolutionType;
-  source_store_id?: number;
-  destination_store_id?: number;
-  quantity?: number;
-  unit?: string;
-  allocations?: TransferAllocation[]; // for even_split
-  unallocated_remainder?: number;
-  is_max_turn_fallback?: boolean;
-  source_store?: Store;
-  destination_store?: Store;
-}
-
-export interface NegotiationContext {
-  current_stock: number;
-  unit: string;
-  predicted_demand?: number;
-  usable_surplus?: number;
-  time_to_stockout_days?: number;
-  transfer_time_hours?: number;
-  participating_store_ids: number[];
-  participating_stores?: Store[];
 }
 
 export interface Negotiation {
   negotiation_id: number;
-  org_id?: number;
+  org_id: number;
   item_id: number;
   initiating_store_id: number;
-  trigger: NegotiationTrigger;
+  trigger_type: NegotiationTriggerType;
   status: NegotiationStatus;
-  resolution?: NegotiationResolution;
-  context?: NegotiationContext;
-  turns?: NegotiationTurn[];
-  is_infrastructure_failure?: boolean;
-  failure_reason?: string;
+  resolution_type?: ResolutionType;
   created_at: string;
   updated_at: string;
-  // Joined
+  // Joined fields for frontend detail rendering
   item?: Item;
   initiating_store?: Store;
+  turns?: NegotiationTurn[];
 }
 
 // ============================================================
-// Transfer
+// Stock Transfers
 // ============================================================
-
-export type TransferPartyStatus = "pending" | "confirmed";
-
-export interface TransferParty {
-  store_id: number;
-  status: TransferPartyStatus;
-  confirmed_at?: string;
-  store?: Store;
-}
 
 export interface Transfer {
   transfer_id: number;
   negotiation_id: number;
+  from_store_id: number;
+  to_store_id: number;
   item_id: number;
-  quantity: number;
-  unit: string;
-  source_store_id: number;
-  destination_store_id: number;
-  parties: TransferParty[];
+  qty: number;
+  from_confirmed: boolean;
+  to_confirmed: boolean;
   is_complete: boolean;
   created_at: string;
   updated_at: string;
-  // Joined
+  // Joined fields for frontend detail rendering
   item?: Item;
   source_store?: Store;
   destination_store?: Store;
-  negotiation?: Negotiation;
 }
 
 // ============================================================
-// Supplier draft / escalation
+// Supplier Contact (Case D / Escalation)
 // ============================================================
 
-export interface SupplierDraft {
-  supplier_id: number;
-  supplier?: Supplier;
-  item_id: number;
-  item?: Item;
-  store_id: number;
-  store?: Store;
-  quantity: number;
-  unit: string;
-  draft_message: string;
-  deep_link?: string; // whatsapp:// or mailto:
+export interface SupplierContactDraft {
+  has_supplier: boolean;
+  message?: string;
+  channel?: "whatsapp" | "email";
+  link?: string;
+  instruction?: string;
 }
 
 // ============================================================
-// Activity feed
+// Helper Status & Event Types
 // ============================================================
+
+export type InventoryTrigger = "immediately_low" | "might_be_low" | null;
 
 export type ActivityEventType =
   | "negotiation_started"
@@ -244,80 +221,13 @@ export interface ActivityEvent {
   event_id: number;
   event_type: ActivityEventType;
   negotiation_id?: number;
-  transfer_id?: number;
-  store_id?: number;
-  item_id?: number;
   description: string;
   created_at: string;
-  // Joined
-  store?: Store;
-  item?: Item;
-}
-
-// ============================================================
-// Configuration
-// ============================================================
-
-export interface OrgConfiguration {
-  org_id: number;
-  batch_threshold: number;
-  max_negotiation_turns: number;
-  distance_tiers?: DistanceTier[];
-}
-
-export interface DistanceTier {
-  tier_name: string;
-  max_distance_km: number;
-  transfer_hours: number;
-}
-
-// ============================================================
-// Expiry alert
-// ============================================================
-
-export interface ExpiryAlert {
-  batch_id: number;
-  store_id: number;
-  item_id: number;
-  quantity: number;
-  unit: string;
-  expiry_date: string;
-  days_until_expiry: number;
-  store?: Store;
-  item?: Item;
-}
-
-// ============================================================
-// Auth / session
-// ============================================================
-
-export interface UserSession {
-  user_id: number;
-  name: string;
-  email: string;
-  store_id: number;
-  org_id: number;
-  role: "manager" | "viewer";
+  store_id?: number;
   store?: Store;
 }
 
-// ============================================================
-// API response wrappers
-// ============================================================
+export type NegotiationTurnOutcome = "responded" | "skipped" | "timed_out";
 
-export interface ApiListResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  page_size: number;
-}
+export type TransferPartyStatus = "confirmed" | "pending";
 
-export interface ApiResponse<T> {
-  data: T;
-}
-
-export interface ApiError {
-  error: string;
-  code: string;
-  status: number;
-}

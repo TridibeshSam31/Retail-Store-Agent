@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getInventoryItem } from "@/lib/api/client";
@@ -20,9 +21,21 @@ export default function InventoryDetailPage({ params }: PageProps) {
   );
   const id = Number(resolvedParams.id);
 
+  const [storeId, setStoreId] = useState<number>(1);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedStoreId = localStorage.getItem("store_id");
+      if (savedStoreId) {
+        setStoreId(Number(savedStoreId));
+      }
+    }
+  }, []);
+
   const { data: inv, isLoading, error } = useQuery({
-    queryKey: ["inventoryItem", id],
-    queryFn: () => getInventoryItem(id),
+    queryKey: ["inventoryItem", storeId, id],
+    queryFn: () => getInventoryItem(storeId, id),
+    enabled: !!storeId,
   });
 
   return (
@@ -66,27 +79,27 @@ export default function InventoryDetailPage({ params }: PageProps) {
                   </div>
                   <div className="text-right space-y-1">
                     <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Risk Status</p>
-                    <RiskBadge trigger={inv.trigger} />
+                    <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-2">
                   <div className="space-y-1">
                     <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Current Stock</p>
-                    <p className="text-3xl font-900 text-zinc-950">{formatQuantity(inv.current_quantity, inv.unit)}</p>
+                    <p className="text-3xl font-900 text-zinc-950 font-mono">{formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}</p>
                   </div>
                   {inv.prediction && (
                     <>
                       <div className="space-y-1">
                         <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Reorder Point (ROP)</p>
-                        <p className="text-3xl font-800 text-zinc-800">
-                          {inv.prediction.rop} <span className="text-sm font-500 text-zinc-400">{inv.unit}</span>
+                        <p className="text-3xl font-800 text-zinc-800 font-mono">
+                          {inv.prediction.rop} <span className="text-sm font-500 text-zinc-400 font-sans">{inv.item?.unit ?? "units"}</span>
                         </p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Economic Order Qty (EOQ)</p>
-                        <p className="text-3xl font-800 text-zinc-800">
-                          {inv.prediction.eoq} <span className="text-sm font-500 text-zinc-400">{inv.unit}</span>
+                        <p className="text-3xl font-800 text-zinc-800 font-mono">
+                          {inv.prediction.eoq} <span className="text-sm font-500 text-zinc-400 font-sans">{inv.item?.unit ?? "units"}</span>
                         </p>
                       </div>
                     </>
@@ -95,7 +108,7 @@ export default function InventoryDetailPage({ params }: PageProps) {
 
                 <div className="border-t border-zinc-100 pt-4 text-xs text-zinc-400 flex items-center justify-between">
                   <span>Last database inventory synchronization:</span>
-                  <span className="font-600 text-zinc-600">{formatDateTime(inv.updated_at)}</span>
+                  <span className="font-600 text-zinc-650 font-mono">{formatDateTime(new Date().toISOString())}</span>
                 </div>
               </div>
 
@@ -110,8 +123,8 @@ export default function InventoryDetailPage({ params }: PageProps) {
                     <div className="space-y-3">
                       <div>
                         <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Predicted Daily Demand (d_hat)</p>
-                        <p className="text-xl font-800 text-zinc-900 mt-1">
-                          {inv.prediction.predicted_demand} {inv.unit} / day
+                        <p className="text-xl font-800 text-zinc-900 mt-1 font-mono">
+                          {inv.prediction.predicted_demand} {inv.item?.unit ?? "units"} / day
                         </p>
                       </div>
                       <p className="text-xs text-zinc-500">
@@ -156,7 +169,7 @@ export default function InventoryDetailPage({ params }: PageProps) {
                   </div>
                   <div className="py-2.5 flex justify-between">
                     <span className="text-zinc-400 font-500">Inventory Unit</span>
-                    <span className="font-600 text-zinc-900">{inv.unit}</span>
+                    <span className="font-600 text-zinc-900">{inv.item?.unit}</span>
                   </div>
                 </div>
               </div>
@@ -164,7 +177,7 @@ export default function InventoryDetailPage({ params }: PageProps) {
               {/* Action shortcuts */}
               <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-3">
                 <h3 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Operations Action</h3>
-                {inv.trigger ? (
+                {inv.prediction && inv.qty_on_hand <= inv.prediction.rop ? (
                   <div className="space-y-2">
                     <p className="text-xs text-zinc-500">
                       This item is currently flagged for stock alerts. Store agents may be actively negotiating transfers in the background.
