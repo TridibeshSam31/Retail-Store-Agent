@@ -127,7 +127,7 @@ export default function NegotiationsPage() {
                           <StoreBadge storeId={neg.initiating_store_id} storeName={neg.initiating_store?.location_name.split(" — ")[1]} size="sm" />
                         </td>
                         <td className="px-4 py-3.5">
-                          <RiskBadge trigger={neg.trigger} />
+                          <RiskBadge trigger={neg.trigger_type} />
                         </td>
                         <td className="px-4 py-3.5">
                           <StatusBadge variant={statusVal} dot={neg.status === "proposed"}>
@@ -135,9 +135,9 @@ export default function NegotiationsPage() {
                           </StatusBadge>
                         </td>
                         <td className="px-4 py-3.5">
-                          {neg.resolution?.resolution_type ? (
+                          {neg.resolution_type ? (
                             <span className="font-600 text-zinc-700 bg-zinc-50 border border-zinc-150 px-1.5 py-0.5 rounded text-[10px] uppercase">
-                              {resolutionLabel(neg.resolution.resolution_type)}
+                              {resolutionLabel(neg.resolution_type)}
                             </span>
                           ) : (
                             <span className="text-zinc-350 italic">unresolved</span>

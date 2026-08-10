@@ -121,9 +121,9 @@ export default function InventoryPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {inventory?.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-zinc-50/50 transition-colors">
+                    <tr key={`${inv.store_id}-${inv.item_id}`} className="hover:bg-zinc-50/50 transition-colors">
                       <td className="px-4 py-3.5">
-                        <Link href={`/inventory/${inv.id}`} className="font-600 text-zinc-950 hover:underline">
+                        <Link href={`/inventory/${inv.item_id}`} className="font-600 text-zinc-950 hover:underline">
                           {inv.item?.item_name}
                         </Link>
                       </td>
@@ -132,14 +132,14 @@ export default function InventoryPage() {
                         <StoreBadge storeId={inv.store_id} storeName={inv.store?.location_name.split(" — ")[1]} size="sm" />
                       </td>
                       <td className="px-4 py-3.5 font-700 text-zinc-800">
-                        {formatQuantity(inv.current_quantity, inv.unit)}
+                        {formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}
                       </td>
                       <td className="px-4 py-3.5">
-                        <RiskBadge trigger={inv.trigger} />
+                        <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-zinc-400">{formatDateTime(inv.updated_at)}</td>
+                      <td className="px-4 py-3.5 text-xs text-zinc-400">{formatDateTime(new Date().toISOString())}</td>
                       <td className="px-4 py-3.5 text-right">
-                        <Link href={`/inventory/${inv.id}`}>
+                        <Link href={`/inventory/${inv.item_id}`}>
                           <Button size="sm" variant="secondary">
                             Analyze
                           </Button>

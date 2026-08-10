@@ -75,7 +75,7 @@ const icons = {
 const navGroups: NavGroup[] = [
   {
     label: "",
-    items: [{ href: "/", label: "Overview", icon: <NavIcon>{icons.overview}</NavIcon> }],
+    items: [{ href: "/dashboard", label: "Overview", icon: <NavIcon>{icons.overview}</NavIcon> }],
   },
   {
     label: "Operations",
@@ -100,7 +100,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
+    if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   };
 

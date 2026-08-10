@@ -26,7 +26,7 @@ export default function SuppliersPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const payload = { name, phone: phone || undefined, email: email || undefined, preferred_channel: channel };
+      const payload = { name, phone: phone || undefined, email: email || undefined, pref: channel };
       return editId ? updateSupplier(editId, payload) : createSupplier(payload);
     },
     onSuccess: () => {
@@ -55,7 +55,7 @@ export default function SuppliersPage() {
     setName(supplier.name);
     setPhone(supplier.phone || "");
     setEmail(supplier.email || "");
-    setChannel(supplier.preferred_channel);
+    setChannel(supplier.pref);
     setIsFormOpen(true);
   };
 
@@ -189,7 +189,7 @@ export default function SuppliersPage() {
                       </td>
                       <td className="px-4 py-3.5">
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-700 uppercase border bg-zinc-55 text-zinc-650 border-zinc-200">
-                          {s.preferred_channel}
+                          {s.pref}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 space-y-1 font-500 text-zinc-600">

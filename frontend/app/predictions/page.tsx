@@ -105,10 +105,10 @@ export default function PredictionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 text-xs">
-                  {predictedItems.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-zinc-50/50 transition-colors">
+                   {predictedItems.map((inv) => (
+                    <tr key={`${inv.store_id}-${inv.item_id}`} className="hover:bg-zinc-50/50 transition-colors">
                       <td className="px-4 py-3.5 font-600 text-zinc-900">
-                        <Link href={`/inventory/${inv.id}`} className="hover:underline">
+                        <Link href={`/inventory/${inv.item_id}`} className="hover:underline">
                           {inv.item?.item_name}
                         </Link>
                       </td>
@@ -116,19 +116,19 @@ export default function PredictionsPage() {
                         <StoreBadge storeId={inv.store_id} storeName={inv.store?.location_name.split(" — ")[1]} size="sm" />
                       </td>
                       <td className="px-4 py-3.5 text-right font-700 text-zinc-700">
-                        {formatQuantity(inv.current_quantity, inv.unit)}
+                        {formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}
                       </td>
                       <td className="px-4 py-3.5 text-right text-indigo-650 font-600">
-                        {inv.prediction?.predicted_demand} {inv.unit} / day
+                        {inv.prediction?.predicted_demand} {inv.item?.unit ?? "units"} / day
                       </td>
                       <td className="px-4 py-3.5 text-right font-500 text-zinc-600">
-                        {inv.prediction?.rop} {inv.unit}
+                        {inv.prediction?.rop} {inv.item?.unit ?? "units"}
                       </td>
                       <td className="px-4 py-3.5 text-right font-500 text-zinc-600">
-                        {inv.prediction?.eoq} {inv.unit}
+                        {inv.prediction?.eoq} {inv.item?.unit ?? "units"}
                       </td>
                       <td className="px-4 py-3.5">
-                        <RiskBadge trigger={inv.trigger} />
+                        <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
                       </td>
                     </tr>
                   ))}

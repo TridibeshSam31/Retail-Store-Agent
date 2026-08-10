@@ -21,7 +21,7 @@ export default function ConfigurationPage() {
 
   useEffect(() => {
     if (config) {
-      setBatchThreshold(config.batch_threshold);
+      setBatchThreshold(config.batch_x);
       setMaxTurns(config.max_negotiation_turns);
     }
   }, [config]);
@@ -29,7 +29,7 @@ export default function ConfigurationPage() {
   const saveMutation = useMutation({
     mutationFn: () =>
       updateConfiguration({
-        batch_threshold: Number(batchThreshold),
+        batch_x: Number(batchThreshold),
         max_negotiation_turns: Number(maxTurns),
       }),
     onSuccess: () => {
@@ -121,7 +121,11 @@ export default function ConfigurationPage() {
                 These read-only values represent geographical distance transit periods used by sub-agents to verify route feasibility.
               </p>
               <div className="divide-y divide-zinc-100">
-                {config.distance_tiers?.map((tier, i) => (
+                {[
+                  { tier_name: "Near", max_distance_km: 15, transfer_hours: 2 },
+                  { tier_name: "Medium", max_distance_km: 50, transfer_hours: 6 },
+                  { tier_name: "Far", max_distance_km: 150, transfer_hours: 12 },
+                ].map((tier, i) => (
                   <div key={i} className="py-2.5 flex justify-between font-500">
                     <span className="text-zinc-400">{tier.tier_name} Tier (&lt; {tier.max_distance_km} km)</span>
                     <span className="font-600 text-zinc-800">{tier.transfer_hours} hrs Lead Time</span>
