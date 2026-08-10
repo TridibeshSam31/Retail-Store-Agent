@@ -70,16 +70,16 @@ export default function RebuiltDayosHomepage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e5e5e5] text-zinc-900 font-sans selection:bg-black selection:text-white px-0 sm:px-4 py-0 sm:py-6">
+    <div className="min-h-screen bg-[#ececec] text-zinc-900 font-sans selection:bg-[#a3e635] selection:text-black p-0">
       
-      {/* ─── Centered Max-Width Brand Container ────────────────────────────────────────── */}
-      <div className="max-w-[1100px] mx-auto bg-[#f5f5f3] shadow-2xl rounded-none sm:rounded-[32px] overflow-hidden border border-zinc-200/80 flex flex-col relative">
+      {/* ─── Centered Max-Width Brand Site Canvas (No top/bottom margins or outer rounded corners) ─── */}
+      <div className="max-w-[1150px] mx-auto bg-[#f5f5f3] min-h-screen border-x border-zinc-200/80 shadow-md flex flex-col relative">
         
         {/* Floating background glowing mesh orb (lime-yellow accent in hero area) */}
         <div className="absolute top-0 right-0 w-[450px] h-[450px] bg-gradient-to-br from-lime-300/10 via-yellow-200/5 to-transparent blur-[120px] rounded-full pointer-events-none z-0" />
 
         {/* ─── Navigation Header ────────────────────────────────────────── */}
-        <header className="px-6 py-5 md:px-10 flex items-center justify-between bg-[#f5f5f3]/85 backdrop-blur-md sticky top-0 z-30 border-b border-zinc-200/40">
+        <header className="px-6 py-6 md:px-10 flex items-center justify-between bg-[#f5f5f3] z-30 border-b border-zinc-200/40">
           <div className="flex items-center gap-3">
             <div className="size-7 rounded bg-black text-white flex items-center justify-center font-mono font-900 text-xs shadow-sm">
               N
@@ -106,97 +106,229 @@ export default function RebuiltDayosHomepage() {
         </header>
 
         {/* ─── Hero Section ─────────────────────────────────────────────── */}
-        <section id="platform" className="px-6 md:px-12 pt-16 pb-20 bg-[#f5f5f3] border-b border-zinc-200/60 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <section id="platform" className="px-6 md:px-12 pt-24 pb-14 bg-[#f5f5f3] relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
             {/* Hero Text Left */}
-            <div className="lg:col-span-7 space-y-6">
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-header font-700 tracking-tight leading-[0.88] text-black uppercase">
+            <div className="lg:col-span-7 space-y-7">
+              <h1 className="text-5xl sm:text-6xl lg:text-7.5xl font-header font-700 tracking-tight leading-[0.85] text-black uppercase">
                 YOUR STORES<br />
                 DON&apos;T HAVE TO<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500">SOLVE SHORTAGES</span><br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-yellow-400 font-extrabold">SOLVE SHORTAGES</span><br />
                 ALONE.
               </h1>
               
-              <div className="space-y-3">
-                <p className="text-sm md:text-base text-zinc-700 font-500 max-w-[500px] leading-relaxed">
+              <div className="space-y-4">
+                <p className="text-sm text-zinc-600 max-w-[530px] leading-relaxed">
                   AI agents monitor inventory, negotiate across your store network, and recommend the best next move before a shortage becomes a problem.
                 </p>
-                <p className="text-xs text-zinc-450 font-500 flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-[#a3e635] animate-ping" />
-                  You stay in control. The agents handle the coordination.
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className="size-1.5 rounded-full bg-[#a3e635] shadow-[0_0_8px_rgba(163,230,53,0.6)]" />
+                  <p className="text-xs text-zinc-500 font-600">
+                    You stay in control. The agents handle the coordination.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-4 pt-2">
+              <div className="flex items-center gap-6 pt-2">
                 <button
                   onClick={scrollToSelector}
-                  className="bg-black text-white px-6 py-3 rounded-full font-700 text-xs hover:bg-zinc-800 transition-all uppercase tracking-wider shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                  className="bg-black text-white px-5 py-3 rounded-full font-700 text-xs hover:bg-zinc-800 transition-all uppercase tracking-wider shadow-sm hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 >
                   Explore the Platform
                 </button>
                 <a
                   href="#how-it-works"
-                  className="group inline-flex items-center gap-1.5 text-xs font-700 text-black hover:text-[#a3e635] transition-colors uppercase tracking-wider font-mono"
+                  className="group inline-flex items-center gap-1 text-xs font-700 text-black hover:text-[#a3e635] transition-colors uppercase tracking-wider"
                 >
-                  See How It Works <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  See How It Works <span className="group-hover:translate-x-1.5 transition-transform">→</span>
                 </a>
               </div>
             </div>
 
-            {/* Hero Right Visual: Connected Store Nodes & Arbitrator */}
+            {/* Hero Right Visual: Restored & Polished Dark Editorial Panel */}
             <div className="lg:col-span-5 flex justify-center relative">
-              {/* Radial gradient background behind the SVG for a glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-lime-300/20 to-yellow-300/10 blur-3xl rounded-full" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-lime-350/20 to-yellow-350/5 blur-3xl rounded-full pointer-events-none" />
               
-              <div className="relative size-64 sm:size-80 bg-zinc-900 rounded-3xl border border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl">
-                {/* SVG Visual Composition representing stores and connection lines */}
-                <svg className="w-full h-full p-6" viewBox="0 0 200 200" fill="none">
-                  {/* Central connections with glowing neon stroke */}
-                  <line x1="40" y1="140" x2="100" y2="40" stroke="#facc15" strokeWidth="1.5" strokeDasharray="3 3" />
-                  <line x1="160" y1="140" x2="100" y2="40" stroke="#a3e635" strokeWidth="1.5" strokeDasharray="3 3" />
-                  <line x1="40" y1="140" x2="160" y2="140" stroke="#555" strokeWidth="1.5" />
-                  
-                  {/* Store 1 Node */}
-                  <g className="animate-bounce" style={{ animationDuration: "4s" }}>
-                    <rect x="25" y="125" width="30" height="30" rx="6" fill="#000000" stroke="#a3e635" strokeWidth="1.5" />
-                    <circle cx="40" cy="140" r="3" fill="#a3e635" className="animate-ping" />
-                    <text x="40" y="118" textAnchor="middle" fill="#a3e635" fontSize="7" fontWeight="bold" fontFamily="monospace">STORE 1</text>
-                  </g>
-                  
-                  {/* Store 2 Node */}
-                  <g className="animate-bounce" style={{ animationDuration: "5s", animationDelay: "1s" }}>
-                    <rect x="85" y="25" width="30" height="30" rx="6" fill="#a3e635" stroke="#facc15" strokeWidth="1.5" />
-                    <circle cx="100" cy="40" r="3.5" fill="#000000" />
-                    <text x="100" y="18" textAnchor="middle" fill="#fff" fontSize="7" fontWeight="bold" fontFamily="monospace">STORE 2</text>
-                  </g>
+              <div className="w-full max-w-[390px] h-[410px] bg-[#151619] rounded-[32px] p-6 flex flex-col justify-between overflow-hidden shadow-2xl border border-zinc-850/60 relative">
+                
+                {/* Top Annotation Labels */}
+                <div className="flex items-center justify-between border-b border-zinc-900 pb-3.5 z-10">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-mono font-700 text-zinc-550 uppercase tracking-widest">NETWORK CONSOLE</span>
+                    <span className="text-xs font-header font-700 text-white uppercase tracking-wider">STORE WORKSPACE</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-zinc-900/60 px-2 py-0.5 rounded-full border border-zinc-800">
+                    <span className="size-1.5 rounded-full bg-[#a3e635] animate-pulse" />
+                    <span className="text-[8px] font-mono text-zinc-400 uppercase tracking-widest font-700">OPERATING</span>
+                  </div>
+                </div>
 
-                  {/* Store 3 Node */}
-                  <g className="animate-bounce" style={{ animationDuration: "6s", animationDelay: "2s" }}>
-                    <rect x="145" y="125" width="30" height="30" rx="6" fill="#000000" stroke="#facc15" strokeWidth="1.5" />
-                    <circle cx="160" cy="140" r="3" fill="#facc15" />
-                    <text x="160" y="118" textAnchor="middle" fill="#facc15" fontSize="7" fontWeight="bold" fontFamily="monospace">STORE 3</text>
-                  </g>
-                  
-                  {/* Arbitrator Element */}
-                  <circle cx="100" cy="115" r="16" fill="#ffffff" stroke="#a3e635" strokeWidth="2" className="shadow-lg" />
-                  <text x="100" y="118" textAnchor="middle" fill="#000" fontSize="9" fontWeight="900" fontFamily="monospace">A</text>
-                </svg>
+                {/* 3D Sculpture Component - Occupies the center visual area, scaled up by ~1.5x */}
+                <div className="h-[210px] w-full flex items-center justify-center relative my-2 z-10">
+                  <svg className="w-full h-full" viewBox="0 0 320 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="lime-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#bef264" />
+                        <stop offset="100%" stopColor="#a3e635" />
+                      </linearGradient>
+                      <linearGradient id="yellow-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#fef08a" />
+                        <stop offset="100%" stopColor="#facc15" />
+                      </linearGradient>
+                      <filter id="shadow-filter" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.4" />
+                      </filter>
+                    </defs>
+
+                    <style>{`
+                      @keyframes float {
+                        0%, 100% { transform: translateY(0px); }
+                        50% { transform: translateY(-7px); }
+                      }
+                      @keyframes shadow-scale {
+                        0%, 100% { transform: scale(1); opacity: 0.35; }
+                        50% { transform: scale(0.9); opacity: 0.2; }
+                      }
+                      @keyframes pulse-ring {
+                        0% { transform: scale(0.85); opacity: 0.7; }
+                        100% { transform: scale(1.6); opacity: 0; }
+                      }
+                      .float-group {
+                        animation: float 6s ease-in-out infinite;
+                      }
+                      .shadow-group {
+                        transform-origin: 150px 190px;
+                        animation: shadow-scale 6s ease-in-out infinite;
+                      }
+                      .pulse-ring-element {
+                        transform-origin: 70px 180px;
+                        animation: pulse-ring 2.8s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+                      }
+                    `}</style>
+
+                    {/* Ground shadows under platforms */}
+                    <ellipse cx="70" cy="204" rx="26" ry="12" fill="#000000" opacity="0.35" />
+                    <ellipse cx="230" cy="204" rx="26" ry="12" fill="#000000" opacity="0.35" />
+                    <ellipse cx="150" cy="84" rx="22" ry="10" fill="#000000" opacity="0.35" />
+                    
+                    {/* Floating shadow under Arbitrator */}
+                    <ellipse cx="150" cy="180" rx="14" ry="7" fill="#000000" className="shadow-group" />
+
+                    {/* ─── Connections / Routing Paths (Subtle, thin dashed paths) ─── */}
+                    <path d="M 230,170 Q 190,145 150,130" stroke="#333" strokeWidth="0.75" strokeDasharray="3 3" />
+                    <path id="reco-path" d="M 150,130 Q 110,160 70,180" stroke="#a3e635" strokeWidth="1" strokeDasharray="3 3" opacity="0.8" />
+
+                    {/* Pulsing signal on connection */}
+                    <circle r="3.2" fill="#facc15" filter="url(#shadow-filter)">
+                      <animateMotion dur="5.0s" repeatCount="indefinite" path="M 230,170 Q 190,145 150,130 Q 110,160 70,180" />
+                    </circle>
+
+                    {/* ─── Store 1 (Left - Shortage Node) ─── */}
+                    <g filter="url(#shadow-filter)">
+                      {/* Platform base (Obsidian dark concrete block) */}
+                      <polygon points="30,180 70,160 110,180 70,200" fill="#1c1917" stroke="#2e2a24" strokeWidth="0.5" />
+                      <polygon points="30,180 30,188 70,208 70,200" fill="#0c0a09" />
+                      <polygon points="70,200 70,208 110,188 110,180" fill="#141210" />
+
+                      {/* Shortage Ring Pulse */}
+                      <ellipse cx="70" cy="180" rx="14" ry="7" fill="none" stroke="#a3e635" strokeWidth="1.5" className="pulse-ring-element" />
+
+                      {/* Floating single Shortage Cube */}
+                      <g className="float-group" style={{ animationDelay: "0.5s" }}>
+                        <polygon points="60,160 72,153 84,160 72,167" fill="url(#lime-glow)" />
+                        <polygon points="60,160 60,174 72,181 72,167" fill="#84cc16" />
+                        <polygon points="72,167 72,181 84,174 84,160" fill="#4d7c0f" />
+                      </g>
+                    </g>
+
+                    {/* ─── Store 2 (Right - Surplus Node) ─── */}
+                    <g filter="url(#shadow-filter)">
+                      {/* Platform base (Obsidian dark concrete block) */}
+                      <polygon points="190,180 230,160 270,180 230,200" fill="#1c1917" stroke="#2e2a24" strokeWidth="0.5" />
+                      <polygon points="190,180 190,188 230,208 230,200" fill="#0c0a09" />
+                      <polygon points="230,200 230,208 270,188 270,180" fill="#141210" />
+
+                      {/* Stacked white/zinc inventory cubes */}
+                      {/* Cube 1 (Left Base) */}
+                      <g>
+                        <polygon points="205,170 217,163 229,170 217,177" fill="#ffffff" />
+                        <polygon points="205,170 205,182 217,189 217,177" fill="#e4e4e7" />
+                        <polygon points="217,177 217,189 229,182 229,170" fill="#d4d4d8" />
+                      </g>
+                      {/* Cube 2 (Right Base) */}
+                      <g>
+                        <polygon points="231,170 243,163 255,170 243,177" fill="#ffffff" />
+                        <polygon points="231,170 231,182 243,189 243,177" fill="#e4e4e7" />
+                        <polygon points="243,177 243,189 255,182 255,170" fill="#d4d4d8" />
+                      </g>
+                      {/* Cube 3 (Highlighted Surplus Cube - Elevated) */}
+                      <g className="float-group" style={{ animationDelay: "1.2s" }}>
+                        <polygon points="218,148 230,141 242,148 230,155" fill="#fef08a" />
+                        <polygon points="218,148 218,160 230,167 230,155" fill="#facc15" />
+                        <polygon points="230,155 230,167 242,160 242,148" fill="#ca8a04" />
+                      </g>
+                    </g>
+
+                    {/* ─── Store 3 (Top - Network Node) ─── */}
+                    <g filter="url(#shadow-filter)">
+                      {/* Platform base (Obsidian dark concrete block) */}
+                      <polygon points="110,80 150,60 190,80 150,100" fill="#1c1917" stroke="#2e2a24" strokeWidth="0.5" />
+                      <polygon points="110,80 110,88 150,108 150,100" fill="#0c0a09" />
+                      <polygon points="150,100 150,108 190,88 190,80" fill="#141210" />
+
+                      {/* Cube stack */}
+                      <g>
+                        <polygon points="138,72 150,65 162,72 150,79" fill="#e4e4e7" />
+                        <polygon points="138,72 138,84 150,91 150,79" fill="#a1a1aa" />
+                        <polygon points="150,79 150,91 162,84 162,72" fill="#71717a" />
+                      </g>
+                    </g>
+
+                    {/* ─── Arbitrator (Center - Floating Octahedron Double-Pyramid) ─── */}
+                    <g className="float-group" filter="url(#shadow-filter)">
+                      {/* Top Pyramid visible faces */}
+                      <polygon points="150,98 136,123 150,134" fill="#ffffff" stroke="#a3e635" strokeWidth="0.25" />
+                      <polygon points="150,98 150,134 164,123" fill="#f4f4f5" stroke="#a3e635" strokeWidth="0.25" />
+                      
+                      {/* Bottom Pyramid visible faces */}
+                      <polygon points="136,123 150,158 150,134" fill="#e4e4e7" stroke="#a3e635" strokeWidth="0.25" />
+                      <polygon points="150,134 150,158 164,123" fill="#d4d4d8" stroke="#a3e635" strokeWidth="0.25" />
+                    </g>
+                  </svg>
+                </div>
+
+                {/* Bottom Annotation State Indicators */}
+                <div className="grid grid-cols-3 gap-2 border-t border-zinc-900 pt-3.5 z-10 text-left font-mono">
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] font-800 text-[#a3e635] uppercase tracking-wider block">● SHORTAGE</span>
+                    <p className="text-[9px] text-zinc-400 font-500">Store 1 • Rice</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] font-800 text-zinc-400 uppercase tracking-wider block">● SURPLUS</span>
+                    <p className="text-[9px] text-zinc-400 font-500">Store 3 • 42 u</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] font-800 text-yellow-450 uppercase tracking-wider block">● RESOLUTION</span>
+                    <p className="text-[9px] text-zinc-550 font-500">Agent route OK</p>
+                  </div>
+                </div>
+
               </div>
             </div>
 
           </div>
         </section>
 
-        {/* ─── First Black Section (Large Rounded Top Edge) ────────────────────────────────── */}
-        <section id="how-it-works" className="bg-[#000000] text-white px-6 md:px-12 py-20 sm:py-24 rounded-t-[36px] -mt-6 z-10 space-y-20 relative overflow-hidden">
+        {/* ─── First Black Section (Large Rounded Top Edge, Flush Sides) ─────────────────────── */}
+        <section id="how-it-works" className="bg-[#000000] text-white px-6 md:px-12 py-24 sm:py-36 rounded-t-[40px] relative overflow-hidden z-10">
           
           {/* Neon mesh glows inside black section */}
           <div className="absolute top-[20%] left-[-100px] w-96 h-96 bg-lime-500/10 blur-[130px] rounded-full pointer-events-none" />
           <div className="absolute bottom-[20%] right-[-100px] w-96 h-96 bg-yellow-500/10 blur-[130px] rounded-full pointer-events-none" />
 
           {/* Detect / Negotiate / Resolve Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-zinc-800 pb-16 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-zinc-800 pb-20 relative z-10">
             <div className="space-y-3.5">
               <h2 className="text-3xl font-header font-700 tracking-tight text-[#a3e635] uppercase">DETECT.</h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -218,11 +350,11 @@ export default function RebuiltDayosHomepage() {
           </div>
 
           {/* Large Editorial Statement */}
-          <div className="max-w-3xl space-y-6 pt-4 relative z-10">
+          <div className="max-w-3xl space-y-6 pt-20 relative z-10">
             <h2 className="text-4xl sm:text-6xl font-header font-700 tracking-tight leading-[0.92] uppercase text-white">
               STOP WATCHING<br />
               INVENTORY.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-400 via-yellow-300 to-amber-400">START SOLVING IT.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-400 via-yellow-300 to-amber-400 font-extrabold">START SOLVING IT.</span>
             </h2>
             <div className="space-y-4 text-sm text-zinc-400 max-w-xl leading-relaxed">
               <p>Traditional inventory software tells you what&apos;s running low.</p>
@@ -233,12 +365,12 @@ export default function RebuiltDayosHomepage() {
           </div>
 
           {/* ─── Product Screenshot & Interactive Gateway Terminal Card ─── */}
-          <div className="space-y-8 pt-8 relative z-10">
+          <div className="space-y-12 pt-24 relative z-10">
             <div className="space-y-2">
               <h3 className="text-xs font-mono font-700 tracking-widest text-[#a3e635] uppercase">
-                Introducing the Store Network
+                INTRODUCING THE STORE NETWORK
               </h3>
-              <p className="text-xl font-header font-700 text-white uppercase">
+              <p className="text-2xl font-header font-700 text-white uppercase max-w-xl">
                 One view of every shortage, every negotiation, and every decision happening across your stores.
               </p>
             </div>
@@ -379,7 +511,7 @@ export default function RebuiltDayosHomepage() {
           </div>
 
           {/* Three Core Capabilities Section */}
-          <div className="space-y-12 pt-16 border-t border-zinc-800 relative z-10">
+          <div className="space-y-12 pt-24 border-t border-zinc-800 relative z-10">
             <div className="space-y-2">
               <h3 className="text-3xl font-header font-700 text-white uppercase tracking-tight">
                 Three Core Capabilities
@@ -392,7 +524,6 @@ export default function RebuiltDayosHomepage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Signals capability */}
               <div className="bg-zinc-950 border border-zinc-900 rounded-2xl p-6 space-y-4 hover:border-zinc-800 hover:shadow-[0_0_15px_rgba(163,230,53,0.04)] transition-all">
-                {/* Icon */}
                 <div className="size-10 rounded-xl bg-[#a3e635]/10 border border-[#a3e635]/20 flex items-center justify-center text-[#a3e635]">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4.5 16.5c-1.5-1.25-2.5-3.25-2.5-5.5s1-4.25 2.5-5.5" />
@@ -444,10 +575,10 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Light Gray Use-Case Section with Card Carousel ────────────────────────────────── */}
-        <section id="use-cases" className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-20 sm:py-24 rounded-[36px] my-6 space-y-12">
+        {/* ─── Light Gray Use-Case Section with Card Carousel (Rounded Top Edge, Flush Sides) ─────── */}
+        <section id="use-cases" className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-24 sm:py-36 rounded-t-[40px] relative z-10 -mt-8">
           
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
             <div className="space-y-3">
               <h2 className="text-4xl sm:text-5xl font-header font-700 tracking-tight leading-[0.95] uppercase text-black">
                 SOLVE THE PROBLEMS<br />
@@ -462,14 +593,14 @@ export default function RebuiltDayosHomepage() {
             <div className="flex gap-2">
               <button
                 onClick={() => scrollCarousel("left")}
-                className="size-10 rounded-full border border-zinc-350 hover:border-black hover:bg-white/40 flex items-center justify-center transition-all"
+                className="size-10 rounded-full border border-zinc-355 hover:border-black hover:bg-white/40 flex items-center justify-center transition-all"
                 title="Scroll Left"
               >
                 ←
               </button>
               <button
                 onClick={() => scrollCarousel("right")}
-                className="size-10 rounded-full border border-zinc-350 hover:border-black hover:bg-white/40 flex items-center justify-center transition-all"
+                className="size-10 rounded-full border border-zinc-355 hover:border-black hover:bg-white/40 flex items-center justify-center transition-all"
                 title="Scroll Right"
               >
                 →
@@ -582,8 +713,8 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Next White Section (Store Network Differentiator) ────────────────────────────────── */}
-        <section id="store-network" className="bg-[#ffffff] px-6 md:px-12 py-20 sm:py-24 space-y-16 relative overflow-hidden">
+        {/* ─── Next White Section (Store Network Differentiator, Flush, Rounded Top Edge) ───────── */}
+        <section id="store-network" className="bg-[#ffffff] px-6 md:px-12 py-24 sm:py-36 rounded-t-[40px] relative overflow-hidden z-10 -mt-8">
           
           <div className="absolute right-[-100px] top-[10%] w-[350px] h-[350px] bg-gradient-to-l from-lime-300/10 to-transparent blur-[120px] rounded-full pointer-events-none" />
 
@@ -598,7 +729,7 @@ export default function RebuiltDayosHomepage() {
               
               <div className="space-y-4 text-xs sm:text-sm text-zinc-650 leading-relaxed max-w-xl">
                 <p className="font-850 text-black">Most inventory systems think store by store.</p>
-                <p className="font-850 text-black bg-gradient-to-r from-lime-400 to-yellow-350 px-3 py-1.5 rounded inline-block">This one thinks across the network.</p>
+                <p className="font-850 text-black bg-gradient-to-r from-lime-400 to-yellow-355 px-3 py-1.5 rounded inline-block">This one thinks across the network.</p>
                 <p>
                   Every store has its own agent. When inventory becomes scarce, those agents can negotiate with one another while a neutral arbitrator resolves competing needs.
                 </p>
@@ -624,13 +755,13 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Human Control Section ────────────────────────────────── */}
-        <section className="bg-[#ffffff] border-t border-zinc-200/80 px-6 md:px-12 py-20 sm:py-24 space-y-12">
+        {/* ─── Human Control Section (Continues in White, Flush, No Rounded Top Corner Gaps) ─────── */}
+        <section className="bg-[#ffffff] px-6 md:px-12 py-24 sm:py-32 space-y-12 z-10 relative">
           
           <div className="max-w-2xl space-y-4">
             <h2 className="text-3xl sm:text-5xl font-header font-700 tracking-tight leading-[0.92] uppercase text-black">
               AI DOES THE THINKING.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500">YOU STAY IN CONTROL.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-500 to-amber-500 font-bold">YOU STAY IN CONTROL.</span>
             </h2>
             <div className="space-y-2 text-xs sm:text-sm text-zinc-650 leading-relaxed">
               <p>
@@ -654,10 +785,10 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Network Capability Grid Section ────────────────────────────────── */}
-        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-20 sm:py-24 rounded-[32px] my-6 space-y-12">
+        {/* ─── Network Capability Grid Section (Flush, Rounded Top Edge) ────────────────────────── */}
+        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-24 sm:py-36 rounded-t-[40px] relative z-10 -mt-8">
           
-          <div className="space-y-3">
+          <div className="space-y-3 mb-12">
             <h2 className="text-4xl font-header font-700 tracking-tight leading-[0.95] uppercase text-black">
               ONE NETWORK.<br />
               EVERY STORE.<br />
@@ -685,8 +816,8 @@ export default function RebuiltDayosHomepage() {
 
         </section>
 
-        {/* ─── Built Around the Way Retail Actually Works Section ────────────────────────────────── */}
-        <section className="bg-[#ffffff] px-6 md:px-12 py-20 sm:py-24 space-y-8 text-center">
+        {/* ─── Built Around the Way Retail Actually Works (Flush, Rounded Top Edge) ──────────────── */}
+        <section className="bg-[#ffffff] px-6 md:px-12 py-24 sm:py-36 rounded-t-[40px] relative z-10 -mt-8 space-y-8 text-center shadow-sm">
           <div className="space-y-3">
             <h2 className="text-3xl font-header font-700 tracking-tight leading-[0.95] uppercase text-black">
               BUILT AROUND THE WAY RETAIL ACTUALLY WORKS.
@@ -712,8 +843,8 @@ export default function RebuiltDayosHomepage() {
           </div>
         </section>
 
-        {/* ─── Final CTA Section ────────────────────────────────── */}
-        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-20 sm:py-24 rounded-t-[32px] text-center space-y-6 relative overflow-hidden">
+        {/* ─── Final CTA Section (Flush, Rounded Top Edge) ───────────────────────────────────────── */}
+        <section className="bg-[#e8e8e5] text-zinc-900 px-6 md:px-12 py-24 sm:py-32 rounded-t-[40px] text-center space-y-6 relative overflow-hidden z-10 -mt-8">
           <div className="absolute inset-0 bg-gradient-to-t from-lime-300/10 to-transparent blur-3xl rounded-full pointer-events-none" />
           
           <h2 className="text-4xl sm:text-6xl font-header font-700 tracking-tight leading-[0.9] uppercase text-black relative z-10">
@@ -733,8 +864,8 @@ export default function RebuiltDayosHomepage() {
           </div>
         </section>
 
-        {/* ─── Footer ────────────────────────────────── */}
-        <footer className="bg-black text-white px-6 md:px-12 py-16 border-t border-zinc-900 text-xs space-y-12">
+        {/* ─── Footer (Flush, Rounded Top Edge) ─────────────────────────────────────────────────── */}
+        <footer className="bg-black text-white px-6 md:px-12 py-16 rounded-t-[40px] text-xs space-y-12 z-20 relative -mt-8">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             <div className="md:col-span-4 space-y-3">
               <span className="font-header font-700 tracking-wider text-xl uppercase text-white">NODE</span>
