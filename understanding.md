@@ -380,3 +380,4 @@ CREATE TABLE config (
     max_negotiation_turns INT NOT NULL
 );
 ```
+
