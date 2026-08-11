@@ -21,9 +21,10 @@ export default function RebuiltDayosHomepage() {
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // Fetch organizations
-  const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
+  const { data: orgs, isLoading: isLoadingOrgs, isError: isErrorOrgs, error: errorOrgs, refetch: refetchOrgs } = useQuery({
     queryKey: ["identityOrgsLanding"],
     queryFn: () => getOrgs(),
+    retry: 1,
   });
 
   // Fetch stores once organization is selected
@@ -440,7 +441,17 @@ export default function RebuiltDayosHomepage() {
                 </div>
 
                 {isLoadingOrgs ? (
-                  <div className="h-24 bg-zinc-800/50 rounded-xl animate-pulse" />
+                  <div className="h-24 bg-zinc-800/50 rounded-xl animate-pulse flex items-center justify-center font-mono text-[10px] text-zinc-400">
+                    Connecting to API...
+                  </div>
+                ) : isErrorOrgs ? (
+                  <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl space-y-2 text-xs">
+                    <p className="font-700 text-red-400">Backend Server Error</p>
+                    <p className="text-zinc-400 text-[11px]">{(errorOrgs as Error)?.message ?? "Could not connect to FastAPI backend at http://localhost:8000"}</p>
+                    <button type="button" onClick={() => refetchOrgs()} className="px-3 py-1 bg-red-900 text-white rounded text-[10px] font-mono hover:bg-red-800 transition-colors">
+                      Retry Connection
+                    </button>
+                  </div>
                 ) : (
                   <form onSubmit={handleSelectIdentity} className="space-y-4 text-xs">
                     {/* Organization dropdown */}

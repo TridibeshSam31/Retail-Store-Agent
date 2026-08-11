@@ -52,11 +52,25 @@ export interface CurrentInventory {
   store_id: number;
   item_id: number;
   qty_on_hand: number;
+  updated_at?: string;
   // Joined fields for frontend presentation convenience
   item?: Item;
   store?: Store;
   prediction?: DailyPrediction;
   time_to_stockout?: number | null; // from /analytics/time-to-stockout
+  usable_surplus?: number; // from /analytics/usable-surplus
+}
+
+export interface UsableSurplusResponse {
+  store_id?: number;
+  item_id?: number;
+  usable_surplus: number;
+}
+
+export interface StockoutResponse {
+  store_id: number;
+  item_id: number;
+  days_to_stockout: number | null;
 }
 
 export interface ExpiryAlert {
@@ -151,11 +165,12 @@ export interface Negotiation {
   org_id: number;
   item_id: number;
   initiating_store_id: number;
+  initiator_store_id?: number;
   trigger_type: NegotiationTriggerType;
   status: NegotiationStatus;
   resolution_type?: ResolutionType;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   // Joined fields for frontend detail rendering
   item?: Item;
   initiating_store?: Store;
@@ -175,9 +190,12 @@ export interface Transfer {
   qty: number;
   from_confirmed: boolean;
   to_confirmed: boolean;
+  confirmed_from?: boolean;
+  confirmed_to?: boolean;
   is_complete: boolean;
-  created_at: string;
-  updated_at: string;
+  completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
   // Joined fields for frontend detail rendering
   item?: Item;
   source_store?: Store;

@@ -12,7 +12,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   session: null,
-  isDemoMode: !process.env.NEXT_PUBLIC_API_BASE_URL,
+  isDemoMode: !(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL),
   setSession: (session) => set({ session }),
   clearSession: () => set({ session: null }),
 }));

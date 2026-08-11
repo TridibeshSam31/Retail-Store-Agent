@@ -9,7 +9,8 @@ import type {
 
 // ─── Date/Time ────────────────────────────────────────────────
 
-export function formatDate(iso: string): string {
+export function formatDate(iso?: string | null): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -17,7 +18,8 @@ export function formatDate(iso: string): string {
   });
 }
 
-export function formatTime(iso: string): string {
+export function formatTime(iso?: string | null): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
@@ -25,11 +27,13 @@ export function formatTime(iso: string): string {
   });
 }
 
-export function formatDateTime(iso: string): string {
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return "—";
   return `${formatDate(iso)} · ${formatTime(iso)}`;
 }
 
-export function formatRelativeTime(iso: string): string {
+export function formatRelativeTime(iso?: string | null): string {
+  if (!iso) return "—";
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "Just now";
