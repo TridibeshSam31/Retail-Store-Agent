@@ -2,7 +2,7 @@
  * Centralized API client
  * ─────────────────────────────────────────────────────────────
  * All API interactions go through this module.
- * Set NEXT_PUBLIC_API_BASE_URL to point at the real backend.
+ * Set NEXT_PUBLIC_API_URL (or NEXT_PUBLIC_API_BASE_URL) to point at the real backend.
  * When not set, the client returns demo fixture data.
  * ─────────────────────────────────────────────────────────────
  */
@@ -39,8 +39,8 @@ import {
 
 // ─── Config ──────────────────────────────────────────────────
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-const IS_DEMO = !BASE_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+const IS_DEMO = !(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL);
 
 // ─── Header Injection ─────────────────────────────────────────
 
@@ -69,8 +69,28 @@ function getHeaders(requireOrgId = true, requireStoreId = false): Record<string,
 
 // ─── HTTP helpers ─────────────────────────────────────────────
 
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 3000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return res;
+  } catch (err: unknown) {
+    const errorName = (err as Error)?.name;
+    if (errorName === "AbortError") {
+      throw new ApiClientError(`Request timeout connecting to backend at ${BASE_URL}`, 504, "TIMEOUT");
+    }
+    throw new ApiClientError(`Backend server unavailable at ${BASE_URL}`, 503, "SERVER_UNAVAILABLE");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function get<T>(path: string, requireOrgId = true, requireStoreId = false): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
     headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
   });
@@ -82,7 +102,7 @@ async function get<T>(path: string, requireOrgId = true, requireStoreId = false)
 }
 
 async function post<T>(path: string, body?: unknown, requireOrgId = true, requireStoreId = false): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
     method: "POST",
     headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
@@ -96,7 +116,7 @@ async function post<T>(path: string, body?: unknown, requireOrgId = true, requir
 }
 
 async function put<T>(path: string, body?: unknown, requireOrgId = true, requireStoreId = false): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
     method: "PUT",
     headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
@@ -110,7 +130,7 @@ async function put<T>(path: string, body?: unknown, requireOrgId = true, require
 }
 
 async function del<T>(path: string, requireOrgId = true, requireStoreId = false): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
     method: "DELETE",
     headers: getHeaders(requireOrgId, requireStoreId),
     credentials: "include",
@@ -250,6 +270,23 @@ export async function getInventory(filters?: InventoryFilters): Promise<CurrentI
     } else {
       data = await get<CurrentInventory[]>("/inventory");
     }
+
+    const [items, stores, predictions] = await Promise.all([
+      getItems().catch(() => []),
+      getStores().catch(() => []),
+      getPredictions().catch(() => []),
+    ]);
+
+    const itemMap = new Map(items.map((i) => [i.item_id, i]));
+    const storeMap = new Map(stores.map((s) => [s.store_id, s]));
+    const predMap = new Map(predictions.map((p) => [`${p.store_id}-${p.item_id}`, p]));
+
+    data = data.map((inv) => ({
+      ...inv,
+      item: inv.item ?? itemMap.get(inv.item_id),
+      store: inv.store ?? storeMap.get(inv.store_id),
+      prediction: inv.prediction ?? predMap.get(`${inv.store_id}-${inv.item_id}`),
+    }));
   }
 
   // Common client-side filtering
@@ -280,7 +317,24 @@ export async function getInventoryItem(storeId: number, itemId: number): Promise
     await delay();
     return DEMO_INVENTORY.find((i) => i.store_id === storeId && i.item_id === itemId)!;
   }
-  return get<CurrentInventory>(`/inventory/${storeId}/${itemId}`);
+
+  const [inv, item, store, prediction, stockout, surplus] = await Promise.all([
+    get<CurrentInventory>(`/inventory/${storeId}/${itemId}`),
+    getItem(itemId).catch(() => undefined),
+    getStore(storeId).catch(() => undefined),
+    getPrediction(storeId, itemId).catch(() => undefined),
+    getTimeToStockout(storeId, itemId).catch(() => null),
+    getUsableSurplus(storeId, itemId).catch(() => 0),
+  ]);
+
+  return {
+    ...inv,
+    item: inv.item ?? item,
+    store: inv.store ?? store,
+    prediction: inv.prediction ?? prediction,
+    time_to_stockout: stockout,
+    usable_surplus: surplus,
+  };
 }
 
 export async function updateInventoryItem(storeId: number, itemId: number, qtyOnHand: number): Promise<CurrentInventory> {
@@ -290,7 +344,47 @@ export async function updateInventoryItem(storeId: number, itemId: number, qtyOn
     item.qty_on_hand = qtyOnHand;
     return item;
   }
-  return put<CurrentInventory>(`/inventory/${storeId}/${itemId}`, { store_id: storeId, item_id: itemId, qty_on_hand: qtyOnHand });
+  return put<CurrentInventory>(`/inventory/${storeId}/${itemId}`, { qty_on_hand: qtyOnHand });
+}
+
+// ─── Analytics ────────────────────────────────────────────────
+
+export async function getUsableSurplus(storeId: number, itemId: number): Promise<number> {
+  if (IS_DEMO) {
+    await delay();
+    return 15;
+  }
+  const res = await get<{ store_id: number; item_id: number; usable_surplus: number }>(
+    `/analytics/usable-surplus/${storeId}/${itemId}`
+  );
+  return res.usable_surplus;
+}
+
+export async function getUsableSurplusForStore(storeId: number): Promise<{ item_id: number; usable_surplus: number }[]> {
+  if (IS_DEMO) {
+    await delay();
+    return DEMO_INVENTORY.filter((i) => i.store_id === storeId).map((i) => ({ item_id: i.item_id, usable_surplus: 15 }));
+  }
+  return get<{ item_id: number; usable_surplus: number }[]>(`/analytics/usable-surplus/store/${storeId}`);
+}
+
+export async function getUsableSurplusForItem(itemId: number): Promise<{ store_id: number; usable_surplus: number }[]> {
+  if (IS_DEMO) {
+    await delay();
+    return DEMO_INVENTORY.filter((i) => i.item_id === itemId).map((i) => ({ store_id: i.store_id, usable_surplus: 15 }));
+  }
+  return get<{ store_id: number; usable_surplus: number }[]>(`/analytics/usable-surplus/item/${itemId}`);
+}
+
+export async function getTimeToStockout(storeId: number, itemId: number): Promise<number | null> {
+  if (IS_DEMO) {
+    await delay();
+    return 3.5;
+  }
+  const res = await get<{ store_id: number; item_id: number; days_to_stockout: number | null }>(
+    `/analytics/time-to-stockout/${storeId}/${itemId}`
+  );
+  return res.days_to_stockout;
 }
 
 // ─── Predictions ──────────────────────────────────────────────
@@ -308,6 +402,16 @@ export async function getPredictions(storeId?: number): Promise<DailyPrediction[
   return get<DailyPrediction[]>("/predictions");
 }
 
+export async function getPrediction(storeId: number, itemId: number): Promise<DailyPrediction> {
+  if (IS_DEMO) {
+    await delay();
+    const p = DEMO_PREDICTIONS.find((pred) => pred.store_id === storeId && pred.item_id === itemId);
+    if (!p) throw new ApiClientError("Prediction not found", 404, "NOT_FOUND");
+    return p;
+  }
+  return get<DailyPrediction>(`/predictions/${storeId}/${itemId}`);
+}
+
 // ─── Negotiations ─────────────────────────────────────────────
 
 export interface NegotiationFilters {
@@ -316,23 +420,44 @@ export interface NegotiationFilters {
 }
 
 export async function getNegotiations(filters?: NegotiationFilters): Promise<Negotiation[]> {
+  let data: Negotiation[];
   if (IS_DEMO) {
     await delay();
-    let data = DEMO_NEGOTIATIONS;
-    if (filters?.status && filters.status !== "all") {
-      data = data.filter((n) => n.status === filters.status);
-    }
+    data = DEMO_NEGOTIATIONS;
+  } else {
     if (filters?.store_id) {
-      data = data.filter(
-        (n) => n.initiating_store_id === filters.store_id
-      );
+      data = await get<Negotiation[]>(`/negotiations/store/${filters.store_id}`);
+    } else {
+      data = await get<Negotiation[]>("/negotiations");
     }
-    return data;
+
+    const [items, stores] = await Promise.all([
+      getItems().catch(() => []),
+      getStores().catch(() => []),
+    ]);
+
+    const itemMap = new Map(items.map((i) => [i.item_id, i]));
+    const storeMap = new Map(stores.map((s) => [s.store_id, s]));
+
+    data = data.map((n) => {
+      const initStoreId = n.initiator_store_id ?? n.initiating_store_id;
+      const initStore = storeMap.get(initStoreId);
+      return {
+        ...n,
+        initiating_store_id: initStoreId,
+        item: n.item ?? itemMap.get(n.item_id),
+        initiating_store: n.initiating_store ?? initStore,
+      };
+    });
+  }
+
+  if (filters?.status && filters.status !== "all") {
+    data = data.filter((n) => n.status === filters.status);
   }
   if (filters?.store_id) {
-    return get<Negotiation[]>(`/negotiations/store/${filters.store_id}`);
+    data = data.filter((n) => (n.initiator_store_id ?? n.initiating_store_id) === filters.store_id);
   }
-  return get<Negotiation[]>("/negotiations");
+  return data;
 }
 
 export async function getNegotiation(id: number): Promise<Negotiation> {
@@ -342,7 +467,21 @@ export async function getNegotiation(id: number): Promise<Negotiation> {
     if (!neg) throw new ApiClientError("Negotiation not found", 404, "NOT_FOUND");
     return neg;
   }
-  return get<Negotiation>(`/negotiations/${id}`);
+
+  const neg = await get<Negotiation>(`/negotiations/${id}`);
+  const initStoreId = neg.initiator_store_id ?? neg.initiating_store_id;
+
+  const [item, store] = await Promise.all([
+    getItem(neg.item_id).catch(() => undefined),
+    getStore(initStoreId).catch(() => undefined),
+  ]);
+
+  return {
+    ...neg,
+    initiating_store_id: initStoreId,
+    item: neg.item ?? item,
+    initiating_store: neg.initiating_store ?? store,
+  };
 }
 
 export async function approveTransfer(negotiationId: number): Promise<void> {
@@ -353,12 +492,12 @@ export async function approveTransfer(negotiationId: number): Promise<void> {
   return post<void>(`/negotiations/${negotiationId}/approve`);
 }
 
-export async function rejectTransfer(negotiationId: number): Promise<void> {
+export async function rejectTransfer(negotiationId: number, action: "renegotiate" | "escalate" = "escalate"): Promise<void> {
   if (IS_DEMO) {
     await delay(800);
     return;
   }
-  return post<void>(`/negotiations/${negotiationId}/reject`);
+  return post<void>(`/negotiations/${negotiationId}/reject`, { action });
 }
 
 export async function addNegotiationTurn(
@@ -383,18 +522,41 @@ export async function cancelNegotiation(negotiationId: number): Promise<void> {
 // ─── Transfers ────────────────────────────────────────────────
 
 export async function getTransfers(storeId?: number): Promise<Transfer[]> {
+  let data: Transfer[];
   if (IS_DEMO) {
     await delay();
-    return storeId
+    data = storeId
       ? DEMO_TRANSFERS.filter(
           (t) => t.from_store_id === storeId || t.to_store_id === storeId,
         )
       : DEMO_TRANSFERS;
+  } else {
+    if (storeId) {
+      data = await get<Transfer[]>(`/transfers/store/${storeId}`);
+    } else {
+      data = await get<Transfer[]>("/transfers");
+    }
+
+    const [items, stores] = await Promise.all([
+      getItems().catch(() => []),
+      getStores().catch(() => []),
+    ]);
+
+    const itemMap = new Map(items.map((i) => [i.item_id, i]));
+    const storeMap = new Map(stores.map((s) => [s.store_id, s]));
+
+    data = data.map((t) => ({
+      ...t,
+      from_confirmed: t.from_confirmed ?? t.confirmed_from ?? false,
+      to_confirmed: t.to_confirmed ?? t.confirmed_to ?? false,
+      is_complete: t.is_complete ?? Boolean(t.completed_at),
+      item: t.item ?? itemMap.get(t.item_id),
+      source_store: t.source_store ?? storeMap.get(t.from_store_id),
+      destination_store: t.destination_store ?? storeMap.get(t.to_store_id),
+    }));
   }
-  if (storeId) {
-    return get<Transfer[]>(`/transfers/store/${storeId}`);
-  }
-  return get<Transfer[]>("/transfers");
+
+  return data;
 }
 
 export async function confirmTransferShipment(transferId: number): Promise<Transfer> {
@@ -470,10 +632,39 @@ export async function getExpiryAlerts(storeId?: number): Promise<ExpiryAlert[]> 
       ? DEMO_EXPIRY.filter((e) => e.store_id === storeId)
       : DEMO_EXPIRY;
   }
+
+  let batches: ExpiryAlert[];
   if (storeId) {
-    return get<ExpiryAlert[]>(`/item-batches/expiring/store/${storeId}`);
+    batches = await get<ExpiryAlert[]>(`/item-batches/expiring/store/${storeId}`);
+  } else {
+    batches = await get<ExpiryAlert[]>("/item-batches/expiring");
   }
-  return get<ExpiryAlert[]>("/item-batches/expiring");
+
+  const [items, stores] = await Promise.all([
+    getItems().catch(() => []),
+    getStores().catch(() => []),
+  ]);
+
+  const itemMap = new Map(items.map((i) => [i.item_id, i]));
+  const storeMap = new Map(stores.map((s) => [s.store_id, s]));
+
+  const today = new Date();
+
+  return batches.map((b) => {
+    let daysUntil: number | undefined = undefined;
+    if (b.expiry_date) {
+      const expDate = new Date(b.expiry_date);
+      const diffTime = expDate.getTime() - today.getTime();
+      daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    return {
+      ...b,
+      item: b.item ?? itemMap.get(b.item_id),
+      store: b.store ?? storeMap.get(b.store_id),
+      days_until_expiry: b.days_until_expiry ?? daysUntil,
+    };
+  });
 }
 
 // ─── Configuration ────────────────────────────────────────────
@@ -500,7 +691,7 @@ export async function getActivity(limit = 20): Promise<ActivityEvent[]> {
       negotiation_id: n.negotiation_id,
       description: `Negotiation #${n.negotiation_id} status updated to ${n.status}`,
       created_at: n.created_at,
-      store_id: n.initiating_store_id,
+      store_id: n.initiating_store_id ?? n.initiator_store_id,
       store: n.initiating_store,
     }));
   }
@@ -511,7 +702,7 @@ export async function getActivity(limit = 20): Promise<ActivityEvent[]> {
     negotiation_id: n.negotiation_id,
     description: `Negotiation #${n.negotiation_id} status updated to ${n.status}`,
     created_at: n.created_at,
-    store_id: n.initiating_store_id,
+    store_id: n.initiating_store_id ?? n.initiator_store_id,
     store: n.initiating_store,
   }));
 }

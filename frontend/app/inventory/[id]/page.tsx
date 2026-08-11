@@ -83,26 +83,30 @@ export default function InventoryDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-2">
                   <div className="space-y-1">
                     <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Current Stock</p>
                     <p className="text-3xl font-900 text-zinc-950 font-mono">{formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}</p>
                   </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Usable Surplus</p>
+                    <p className="text-3xl font-800 text-emerald-700 font-mono">
+                      {inv.usable_surplus ?? 0} <span className="text-sm font-500 text-zinc-400 font-sans">{inv.item?.unit ?? "units"}</span>
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Time to Stockout</p>
+                    <p className="text-3xl font-800 text-amber-700 font-mono">
+                      {inv.time_to_stockout != null ? `${inv.time_to_stockout.toFixed(1)}d` : "—"}
+                    </p>
+                  </div>
                   {inv.prediction && (
-                    <>
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Reorder Point (ROP)</p>
-                        <p className="text-3xl font-800 text-zinc-800 font-mono">
-                          {inv.prediction.rop} <span className="text-sm font-500 text-zinc-400 font-sans">{inv.item?.unit ?? "units"}</span>
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Economic Order Qty (EOQ)</p>
-                        <p className="text-3xl font-800 text-zinc-800 font-mono">
-                          {inv.prediction.eoq} <span className="text-sm font-500 text-zinc-400 font-sans">{inv.item?.unit ?? "units"}</span>
-                        </p>
-                      </div>
-                    </>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Reorder Point (ROP)</p>
+                      <p className="text-3xl font-800 text-zinc-800 font-mono">
+                        {inv.prediction.rop} <span className="text-sm font-500 text-zinc-400 font-sans">{inv.item?.unit ?? "units"}</span>
+                      </p>
+                    </div>
                   )}
                 </div>
 

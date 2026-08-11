@@ -9,7 +9,7 @@ import { ActivityRail } from "./ActivityRail";
 import { DemoBanner } from "@/components/ui/badges";
 import { useAppStore } from "@/lib/store";
 
-const IS_DEMO = !process.env.NEXT_PUBLIC_API_BASE_URL;
+const IS_DEMO = !(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL);
 
 interface AppShellProps {
   children: React.ReactNode;
