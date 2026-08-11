@@ -6,7 +6,7 @@ from app.core.auth import get_current_org_id
 from app.models import Negotiation, NegotiationTurn
 from app.schemas.negotiations import (
     NegotiationCreate, NegotiationOut, NegotiationDetailOut,
-    NegotiationTurnCreate, NegotiationTurnOut, NegotiationResolve,
+    NegotiationTurnCreate, NegotiationTurnOut, NegotiationResolve, RejectDecision,
 )
 
 router = APIRouter(prefix="/negotiations", tags=["negotiations"])
@@ -105,11 +105,15 @@ def approve_negotiation(negotiation_id: int, db: Session = Depends(get_db),
         db.rollback()
         raise HTTPException(status_code=400, detail="Could not approve negotiation")
     db.refresh(neg)
+
+    from lang.bridge import resume_negotiation
+    resume_negotiation(negotiation_id, "approved")
+
     return neg
 
 
 @router.post("/{negotiation_id}/reject", response_model=NegotiationOut)  # human touchpoint 2
-def reject_negotiation(negotiation_id: int, db: Session = Depends(get_db),
+def reject_negotiation(negotiation_id: int, payload: RejectDecision, db: Session = Depends(get_db),
                         org_id: int = Depends(get_current_org_id)):
     neg = db.get(Negotiation, negotiation_id)
     if not neg:
@@ -121,6 +125,10 @@ def reject_negotiation(negotiation_id: int, db: Session = Depends(get_db),
         db.rollback()
         raise HTTPException(status_code=400, detail="Could not reject negotiation")
     db.refresh(neg)
+
+    from lang.bridge import resume_negotiation
+    resume_negotiation(negotiation_id, payload.action)  # "renegotiate" or "escalate"
+
     return neg
 
 

@@ -12,8 +12,13 @@ class NegotiationCreate(BaseModel):
 
 
 class NegotiationResolve(BaseModel):
-    resolution_type: str  # transfer | even_split | supplier | cancelled
+    resolution_type: str  # transfer | partial | supplier | cancelled
     status: str  # proposed | completed | aborted
+
+
+class RejectDecision(BaseModel):
+    action: str  # renegotiate | escalate
+    argument_text: str | None = None  # optional starting argument if renegotiating
 
 
 class NegotiationOut(ORMBase):

@@ -8,20 +8,26 @@ Two paths, matching the PRD:
     checks "might be low", and is SKIPPED for an item/store that just
     tripped immediately-low in the same cycle (PRD's interaction rule).
 
-Both only decide WHEN to open a negotiation and create the
-Negotiation row itself — the actual negotiation (turns, arbitration,
-resolution) is owned by the Agents group from that point on.
+Both return the new negotiation_id (or None if nothing tripped, or a
+negotiation was already open). They deliberately do NOT kick off the
+agent themselves - at this point the Negotiation row is only
+flush()'d, not committed, so a second DB session (the agent's) can't
+see it yet. The caller (the router) must call
+lang.bridge.start_negotiation(negotiation_id) AFTER db.commit()
+succeeds - see inventory.py / transactions.py.
 """
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
-from app.models import Config, DailyPrediction, Negotiation, RawTransaction, Store
+from app.models import Config, Negotiation, RawTransaction, Store
 from app.services.prediction_service import get_latest_prediction
 
 IMMEDIATE_LOW_RATIO = 0.20  # qty_on_hand <= 20% of ROP triggers immediately-low
 
 
-def _has_open_negotiation(db: Session, store_id: int, item_id: int) -> bool:
-    return (
+def _open_negotiation_id(db: Session, store_id: int, item_id: int) -> Optional[int]:
+    neg = (
         db.query(Negotiation)
         .filter(
             Negotiation.initiator_store_id == store_id,
@@ -29,8 +35,8 @@ def _has_open_negotiation(db: Session, store_id: int, item_id: int) -> bool:
             Negotiation.status.in_(["proposed", "approved"]),
         )
         .first()
-        is not None
     )
+    return neg.negotiation_id if neg else None
 
 
 def _create_negotiation(db: Session, store_id: int, item_id: int, trigger_type: str) -> Negotiation:
@@ -43,51 +49,49 @@ def _create_negotiation(db: Session, store_id: int, item_id: int, trigger_type: 
         status="proposed",
     )
     db.add(neg)
-    db.flush()  # so callers/tests can see negotiation_id without a separate commit
+    db.flush()  # get negotiation_id without committing — caller commits
     return neg
 
 
-def check_immediately_low(db: Session, store_id: int, item_id: int, qty_on_hand: int) -> bool:
+def check_immediately_low(db: Session, store_id: int, item_id: int, qty_on_hand: int) -> Optional[int]:
     """
     Real-time check, run inline on every stock write (same transaction
-    as the write itself — see inventory.py / transactions.py). Returns
-    True if immediately-low tripped (whether or not a NEW negotiation
-    was created — an existing open one counts as already handled, per
-    the PRD's "avoid re-flagging" rule).
+    as the write itself). Returns the negotiation_id if a NEW
+    negotiation was created this call, else None (nothing tripped, or
+    one was already open — no duplicate created either way).
     """
     prediction = get_latest_prediction(db, store_id, item_id)
     if not prediction:
-        return False  # no ROP to compare against yet
+        return None  # no ROP to compare against yet
 
     threshold = float(prediction.rop) * IMMEDIATE_LOW_RATIO
     if qty_on_hand > threshold:
-        return False
+        return None
 
-    if _has_open_negotiation(db, store_id, item_id):
-        return True  # already flagged this cycle, don't duplicate
+    if _open_negotiation_id(db, store_id, item_id) is not None:
+        return None  # already flagged this cycle, don't duplicate
 
-    _create_negotiation(db, store_id, item_id, trigger_type="immediately_low")
-    return True
+    neg = _create_negotiation(db, store_id, item_id, trigger_type="immediately_low")
+    return neg.negotiation_id
 
 
-def maybe_recompute_batch(db: Session, org_id: int, store_id: int, item_id: int) -> None:
+def maybe_recompute_batch(db: Session, org_id: int, store_id: int, item_id: int) -> Optional[int]:
     """
     Called after every transaction insert. Counts transactions for
     this store+item since the last daily_predictions row, and once
     config.batch_x is reached, runs the "might be low" check.
 
     Interaction rule: if this store+item already has an
-    immediately-low negotiation open, the batch check is skipped
-    entirely for it this cycle (the immediately-low path already
-    covered it) - this is what stops the same shortage being flagged
-    twice, per the PRD.
+    immediately-low negotiation open, this is skipped entirely (the
+    immediately-low path already covered it) — stops the same
+    shortage being flagged twice, per the PRD.
     """
-    if _has_open_negotiation(db, store_id, item_id):
-        return  # skipped — immediately-low already handled this cycle
+    if _open_negotiation_id(db, store_id, item_id) is not None:
+        return None  # skipped — already handled this cycle
 
     cfg = db.get(Config, org_id)
     if not cfg:
-        return  # no batch_x configured for this org yet
+        return None  # no batch_x configured for this org yet
 
     latest_prediction = get_latest_prediction(db, store_id, item_id)
     since = latest_prediction.created_at if latest_prediction else None
@@ -100,19 +104,18 @@ def maybe_recompute_batch(db: Session, org_id: int, store_id: int, item_id: int)
     txn_count = q.count()
 
     if txn_count < cfg.batch_x:
-        return  # not enough transactions yet to trigger a recompute
+        return None  # not enough transactions yet
 
-    # NOTE: this does not re-run the ML prediction itself (that's the
-    # ML pipeline's job) - it only checks "might be low" against the
-    # most recent prediction already on file, since that's what
-    # decides whether a negotiation opens.
     if not latest_prediction:
-        return
+        return None
 
     from app.models import CurrentInventory
     inv = db.get(CurrentInventory, (store_id, item_id))
     if not inv:
-        return
+        return None
 
     if inv.qty_on_hand <= latest_prediction.rop:
-        _create_negotiation(db, store_id, item_id, trigger_type="might_be_low")
+        neg = _create_negotiation(db, store_id, item_id, trigger_type="might_be_low")
+        return neg.negotiation_id
+
+    return None

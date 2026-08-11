@@ -14,6 +14,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db),
                         org_id: int = Depends(get_current_org_id)):
     txn = RawTransaction(**payload.model_dump())
+    negotiation_id = None
     try:
         db.add(txn)
         db.flush()  # get transaction_id, still inside the same transaction
@@ -23,17 +24,23 @@ def create_transaction(payload: TransactionCreate, db: Session = Depends(get_db)
         inv = db.get(CurrentInventory, (payload.store_id, payload.item_id))
         if inv:
             inv.qty_on_hand -= payload.sales
-            check_immediately_low(db, payload.store_id, payload.item_id, inv.qty_on_hand)
+            negotiation_id = check_immediately_low(db, payload.store_id, payload.item_id, inv.qty_on_hand)
             # Batch-X count + might-be-low check — internally skipped if
             # immediately-low just opened a negotiation for this item/store
             # in the check above (PRD's skip-batch-if-immediately-low rule).
-            maybe_recompute_batch(db, org_id, payload.store_id, payload.item_id)
+            if negotiation_id is None:
+                negotiation_id = maybe_recompute_batch(db, org_id, payload.store_id, payload.item_id)
 
         db.commit()
     except Exception:
         db.rollback()
         raise HTTPException(status_code=400, detail="Could not record transaction")
     db.refresh(txn)
+
+    if negotiation_id is not None:
+        from lang.bridge import start_negotiation
+        start_negotiation(negotiation_id)
+
     return txn
 
 

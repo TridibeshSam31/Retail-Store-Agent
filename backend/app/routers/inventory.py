@@ -53,15 +53,21 @@ def update_inventory(store_id: int, item_id: int, payload: CurrentInventoryUpdat
 
     # Single transaction: qty update + threshold check happen together,
     # so a crash mid-way never leaves stock updated without the check
-    # having run (or vice versa).
+    # having run (or vice versa). The agent is only started AFTER
+    # commit — its own DB session can't see an uncommitted negotiation row.
     try:
         row.qty_on_hand = payload.qty_on_hand
-        check_immediately_low(db, store_id, item_id, payload.qty_on_hand)
+        negotiation_id = check_immediately_low(db, store_id, item_id, payload.qty_on_hand)
         db.commit()
     except Exception:
         db.rollback()
         raise HTTPException(status_code=400, detail="Could not update inventory")
     db.refresh(row)
+
+    if negotiation_id is not None:
+        from lang.bridge import start_negotiation
+        start_negotiation(negotiation_id)
+
     return row
 
 
