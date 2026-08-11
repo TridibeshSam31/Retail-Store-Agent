@@ -1,0 +1,12 @@
+agent/
+engineered_features.csv
+raw_data.csv
+retail_sales.csv
+test.py
+tomorrow_predictions.csv
+.env
+synthetic_data/
+agent/
+lang-graph/
+understanding.md
+pipeline\sample.csv
