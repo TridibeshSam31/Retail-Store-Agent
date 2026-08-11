@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     health, orgs, stores, store_distances, items, inventory_metadata,
@@ -8,6 +9,7 @@ from app.routers import (
 )
 
 app = FastAPI(title="Multi-Store Agentic AI - Backend")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 app.include_router(health.router)
 app.include_router(orgs.router)
