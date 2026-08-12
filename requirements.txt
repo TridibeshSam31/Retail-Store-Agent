@@ -1,9 +1,0 @@
-langchain 
-scikit-learn 
-xgboost 
-sqlalchemy 
-flask 
-pandas 
-numpy
-psycopg2
-dotenv
