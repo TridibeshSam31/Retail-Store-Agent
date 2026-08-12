@@ -10,18 +10,16 @@ import pandas as pd
 # --- CHANGED START ---
 from sklearn.metrics import mean_absolute_percentage_error
 # --- CHANGED END ---
-from sqlalchemy import create_engine
 import subprocess
-from dotenv import load_dotenv
-import os
+from app.core.config import settings
+from pathlib import Path
+from sqlalchemy import create_engine
 # --- CHANGED START ---
 import sys
 # --- CHANGED END ---
 
-load_dotenv()
-# Database Configuration
-DB_URL = os.getenv("DB_URL")
-engine = create_engine(DB_URL)
+engine = create_engine(settings.database_url)
+PIPELINE_DIR = Path(__file__).resolve().parent
 
 # --- CHANGED START ---
 # Define a 20% global error threshold using MAPE
@@ -62,7 +60,7 @@ def evaluate_model():
             print("Triggering full model retrain on 3-year sliding window...")
             
             # Using sys.executable guarantees the retrain runs in your active virtual environment
-            subprocess.run([sys.executable, "model.py"], check=True)
+            subprocess.run([sys.executable, str(PIPELINE_DIR / "model.py")], check=True)
         else:
             print("Model performance is stable over the past week. No retrain required.")
         # --- CHANGED END ---

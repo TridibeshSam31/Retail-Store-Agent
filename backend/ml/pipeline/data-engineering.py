@@ -1,17 +1,15 @@
 import pandas as pd
 import numpy as np
+from app.core.config import settings
+from pathlib import Path
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
-# Database Configuration
-DB_URL = os.getenv("DB_URL")
-engine = create_engine(DB_URL)
+engine = create_engine(settings.database_url)
+PIPELINE_DIR = Path(__file__).resolve().parent
 
 def engineer_features():
     print("Engineering temporal features...")
-    df = pd.read_csv("raw_data.csv")
+    df = pd.read_csv(PIPELINE_DIR / "raw_data.csv")
     df['date'] = pd.to_datetime(df['date'])
     
     # Fetch Expanding stats from database directly
@@ -70,7 +68,7 @@ def engineer_features():
     ]
     df = df[final_columns]
     
-    df.to_csv("engineered_features.csv", index=False)
+    df.to_csv(PIPELINE_DIR / "engineered_features.csv", index=False)
     print("Feature engineering complete. Saved to engineered_features.csv")
 
 if __name__ == "__main__":

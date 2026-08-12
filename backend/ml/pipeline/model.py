@@ -1,15 +1,13 @@
 import pandas as pd
 import xgboost as xgb
 import joblib
-from sqlalchemy import create_engine
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
-from dotenv import load_dotenv
-import os
+from app.core.config import settings
+from pathlib import Path
+from sqlalchemy import create_engine
 
-load_dotenv()
-# Database Configuration
-DB_URL = os.getenv("DB_URL")
-engine = create_engine(DB_URL)
+engine = create_engine(settings.database_url)
+PIPELINE_DIR = Path(__file__).resolve().parent
 
 
 def retrain_model():
@@ -30,10 +28,10 @@ def retrain_model():
     # df_clean = full_historical_engineering_pipeline(df) 
     
     # For this script's execution, we will load the engineered_features as a proxy
-    if not os.path.exists("engineered_features.csv"):
+    if not (PIPELINE_DIR / "engineered_features.csv").exists():
         raise FileNotFoundError("Missing engineered features for training.")
         
-    df_clean = pd.read_csv("engineered_features.csv")
+    df_clean = pd.read_csv(PIPELINE_DIR / "engineered_features.csv")
     df_clean = df_clean.dropna().sort_values(by=['store_id', 'item_id', 'date'])
     
     X = df_clean.drop(columns=['date', 'sales', 'store_id', 'item_id'])
@@ -65,7 +63,7 @@ def retrain_model():
     
     # 3. Save the winning model matching the filename in image_48332c.png
     best_model = grid_search.best_estimator_
-    joblib.dump(best_model, 'demand-forecasting-01.pkl')
+    joblib.dump(best_model, PIPELINE_DIR / 'demand-forecasting-01.pkl')
     print("New model trained and saved successfully as demand-forecasting-01.pkl")
 
 if __name__ == "__main__":

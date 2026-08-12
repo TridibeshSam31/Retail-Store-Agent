@@ -2,15 +2,13 @@
 # date,store_id,item_id,sales,price,promo,weekday,month
 
 import pandas as pd
-from sqlalchemy import create_engine
 import datetime
-from dotenv import load_dotenv
-import os
+from app.core.config import settings
+from pathlib import Path
+from sqlalchemy import create_engine
 
-load_dotenv()
-# Database Configuration
-DB_URL = os.getenv("DB_URL")
-engine = create_engine(DB_URL)
+engine = create_engine(settings.database_url)
+PIPELINE_DIR = Path(__file__).resolve().parent
 
 def collect_data():
     print("Collecting historical data from database...")
