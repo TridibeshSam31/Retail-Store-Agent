@@ -106,6 +106,18 @@ def maybe_recompute_batch(db: Session, org_id: int, store_id: int, item_id: int)
     if txn_count < cfg.batch_x:
         return None  # not enough transactions yet
 
+    # This is the actual ML batch boundary. The pipeline writes the
+    # next-day prediction into the same DB transaction as the sale.
+    # That keeps the trigger atomic: if the transaction rolls back, so
+    # does the prediction generated from it.
+    from ml.pipeline.service import recompute_predictions
+    predictions = recompute_predictions(
+        db, org_id, store_id=store_id, item_id=item_id
+    )
+    if not predictions:
+        return None  # no historical sales/model input yet
+
+    latest_prediction = get_latest_prediction(db, store_id, item_id)
     if not latest_prediction:
         return None
 
