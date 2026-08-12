@@ -9,3 +9,9 @@ agent
 test.py
 tomorrow_predictions.csv
 synthetic_data/
+data_ingestion.py
+langgraph.md
+mlpart.md
+mlpart.sql
+schema.sql
+understanding.md
