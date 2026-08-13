@@ -73,6 +73,10 @@ def _persist_turn(negotiation_id: int, store_id: int, turn_number: int, text_con
             turn_number=turn_number, argument_text=text_content, responded=True,
         ))
         db.commit()
+        print(f"[_persist_turn] wrote turn {turn_number} for negotiation {negotiation_id}")
+    except Exception as e:
+        print(f"[_persist_turn] FAILED for negotiation {negotiation_id}: {e}")
+        raise
     finally:
         db.close()
 
