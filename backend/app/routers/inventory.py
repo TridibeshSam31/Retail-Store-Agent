@@ -16,11 +16,18 @@ def create_inventory(payload: CurrentInventoryCreate, db: Session = Depends(get_
     row = CurrentInventory(**payload.model_dump())
     db.add(row)
     try:
+        db.flush()  # row visible in this session, not yet committed
+        negotiation_id = check_immediately_low(db, row.store_id, row.item_id, row.qty_on_hand)
         db.commit()
     except Exception:
         db.rollback()
         raise HTTPException(status_code=400, detail="Could not create inventory record")
     db.refresh(row)
+
+    if negotiation_id is not None:
+        from lang.bridge import start_negotiation
+        start_negotiation(negotiation_id)
+
     return row
 
 

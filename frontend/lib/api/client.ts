@@ -347,6 +347,30 @@ export async function updateInventoryItem(storeId: number, itemId: number, qtyOn
   return put<CurrentInventory>(`/inventory/${storeId}/${itemId}`, { qty_on_hand: qtyOnHand });
 }
 
+export async function createInventoryItem(data: {
+  store_id: number;
+  item_id: number;
+  qty_on_hand: number;
+}): Promise<CurrentInventory> {
+  if (IS_DEMO) {
+    await delay(800);
+    const newItem = { ...data } as CurrentInventory;
+    DEMO_INVENTORY.push(newItem);
+    return newItem;
+  }
+  return post<CurrentInventory>("/inventory", data, true, false);
+}
+
+export async function deleteInventoryItem(storeId: number, itemId: number): Promise<void> {
+  if (IS_DEMO) {
+    await delay(600);
+    const idx = DEMO_INVENTORY.findIndex((i) => i.store_id === storeId && i.item_id === itemId);
+    if (idx > -1) DEMO_INVENTORY.splice(idx, 1);
+    return;
+  }
+  return del<void>(`/inventory/${storeId}/${itemId}`, true, false);
+}
+
 // ─── Analytics ────────────────────────────────────────────────
 
 export async function getUsableSurplus(storeId: number, itemId: number): Promise<number> {

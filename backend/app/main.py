@@ -9,7 +9,13 @@ from app.routers import (
 )
 
 app = FastAPI(title="Multi-Store Agentic AI - Backend")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://192.168.1.6:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 app.include_router(health.router)
 app.include_router(orgs.router)

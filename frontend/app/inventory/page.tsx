@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
-import { getInventory, getStores } from "@/lib/api/client";
+import {
+  getInventory,
+  getStores,
+  getItems,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+} from "@/lib/api/client";
 import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDateTime } from "@/lib/formatting";
@@ -14,10 +21,20 @@ export default function InventoryPage() {
   const [storeFilter, setStoreFilter] = useState<string>("all");
   const [triggerFilter, setTriggerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState<string>("");
+
+  const queryClient = useQueryClient();
 
   const { data: stores } = useQuery({
     queryKey: ["stores"],
     queryFn: () => getStores(),
+  });
+
+  const { data: items } = useQuery({
+    queryKey: ["items"],
+    queryFn: () => getItems(),
   });
 
   const { data: inventory, isLoading, error, refetch } = useQuery({
@@ -29,6 +46,57 @@ export default function InventoryPage() {
         search: search ? search : undefined,
       }),
   });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["inventory"] });
+
+  const addMutation = useMutation({
+    mutationFn: createInventoryItem,
+    onSuccess: () => {
+      invalidate();
+      setShowAddForm(false);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ storeId, itemId, qty }: { storeId: number; itemId: number; qty: number }) =>
+      updateInventoryItem(storeId, itemId, qty),
+    onSuccess: () => {
+      invalidate();
+      setEditingKey(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ storeId, itemId }: { storeId: number; itemId: number }) =>
+      deleteInventoryItem(storeId, itemId),
+    onSuccess: invalidate,
+  });
+
+  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    addMutation.mutate({
+      store_id: Number(form.get("store_id")),
+      item_id: Number(form.get("item_id")),
+      qty_on_hand: Number(form.get("qty_on_hand")),
+    });
+  };
+
+  const startEdit = (storeId: number, itemId: number, currentQty: number) => {
+    setEditingKey(`${storeId}-${itemId}`);
+    setEditQty(String(currentQty));
+  };
+
+  const submitEdit = (storeId: number, itemId: number) => {
+    const qty = Number(editQty);
+    if (Number.isNaN(qty) || qty < 0) return;
+    updateMutation.mutate({ storeId, itemId, qty });
+  };
+
+  const handleDelete = (storeId: number, itemId: number, itemName?: string) => {
+    if (!window.confirm(`Remove ${itemName ?? "this item"} from inventory at this store?`)) return;
+    deleteMutation.mutate({ storeId, itemId });
+  };
 
   return (
     <AppShell>
@@ -42,12 +110,56 @@ export default function InventoryPage() {
             <Button size="sm" variant="secondary" onClick={() => refetch()}>
               Refresh
             </Button>
+            <Button size="sm" onClick={() => setShowAddForm((v) => !v)}>
+              {showAddForm ? "Cancel" : "Add Item"}
+            </Button>
           </div>
         </div>
 
+        {/* Add Item Form */}
+        {showAddForm && (
+          <form
+            onSubmit={handleAddSubmit}
+            className="bg-white border border-zinc-200 rounded-lg p-4 flex flex-col md:flex-row gap-3 items-end shadow-sm"
+          >
+            <div className="flex flex-col gap-1 w-full md:w-auto">
+              <label className="text-[11px] font-600 text-zinc-400 uppercase">Store</label>
+              <select name="store_id" required className="px-2 py-1.5 text-xs border border-zinc-200 rounded-md bg-white text-zinc-700">
+                {stores?.map((s) => (
+                  <option key={s.store_id} value={s.store_id}>
+                    {s.location_name.split(" — ")[1] ?? s.location_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 w-full md:w-auto">
+              <label className="text-[11px] font-600 text-zinc-400 uppercase">Item</label>
+              <select name="item_id" required className="px-2 py-1.5 text-xs border border-zinc-200 rounded-md bg-white text-zinc-700">
+                {items?.map((i) => (
+                  <option key={i.item_id} value={i.item_id}>
+                    {i.item_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 w-full md:w-auto">
+              <label className="text-[11px] font-600 text-zinc-400 uppercase">Qty on Hand</label>
+              <input
+                name="qty_on_hand"
+                type="number"
+                min={0}
+                required
+                className="px-2 py-1.5 text-xs border border-zinc-200 rounded-md bg-zinc-50 text-zinc-800 w-28"
+              />
+            </div>
+            <Button size="sm" type="submit" disabled={addMutation.isPending}>
+              {addMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </form>
+        )}
+
         {/* Filters Panel */}
         <div className="bg-white border border-zinc-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-center shadow-sm">
-          {/* Search bar */}
           <div className="w-full md:flex-1 relative">
             <input
               type="text"
@@ -59,7 +171,6 @@ export default function InventoryPage() {
           </div>
 
           <div className="flex w-full md:w-auto gap-3 flex-wrap">
-            {/* Store select */}
             <div className="flex items-center gap-1.5">
               <label className="text-[11px] font-600 text-zinc-400 uppercase">Store:</label>
               <select
@@ -76,7 +187,6 @@ export default function InventoryPage() {
               </select>
             </div>
 
-            {/* Status select */}
             <div className="flex items-center gap-1.5">
               <label className="text-[11px] font-600 text-zinc-400 uppercase">Risk Status:</label>
               <select
@@ -95,7 +205,7 @@ export default function InventoryPage() {
         {/* Inventory List Table */}
         <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden">
           {isLoading ? (
-            <TableSkeleton cols={6} rows={6} />
+            <TableSkeleton cols={7} rows={6} />
           ) : error ? (
             <div className="p-12 text-center text-red-500">
               Error fetching inventory. Please try again.
@@ -120,33 +230,83 @@ export default function InventoryPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {inventory?.map((inv) => (
-                    <tr key={`${inv.store_id}-${inv.item_id}`} className="hover:bg-zinc-50/50 transition-colors">
-                      <td className="px-4 py-3.5">
-                        <Link href={`/inventory/${inv.item_id}`} className="font-600 text-zinc-950 hover:underline">
-                          {inv.item?.item_name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-zinc-500">{inv.item?.category}</td>
-                      <td className="px-4 py-3.5">
-                        <StoreBadge storeId={inv.store_id} storeName={inv.store?.location_name.split(" — ")[1]} size="sm" />
-                      </td>
-                      <td className="px-4 py-3.5 font-700 text-zinc-800">
-                        {formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-zinc-400">{formatDateTime(new Date().toISOString())}</td>
-                      <td className="px-4 py-3.5 text-right">
-                        <Link href={`/inventory/${inv.item_id}`}>
-                          <Button size="sm" variant="secondary">
-                            Analyze
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                  {inventory?.map((inv) => {
+                    const key = `${inv.store_id}-${inv.item_id}`;
+                    const isEditing = editingKey === key;
+                    return (
+                      <tr key={key} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="px-4 py-3.5">
+                          <Link href={`/inventory/${inv.item_id}`} className="font-600 text-zinc-950 hover:underline">
+                            {inv.item?.item_name}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-zinc-500">{inv.item?.category}</td>
+                        <td className="px-4 py-3.5">
+                          <StoreBadge storeId={inv.store_id} storeName={inv.store?.location_name.split(" — ")[1]} size="sm" />
+                        </td>
+                        <td className="px-4 py-3.5 font-700 text-zinc-800">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min={0}
+                                value={editQty}
+                                onChange={(e) => setEditQty(e.target.value)}
+                                className="w-20 px-2 py-1 text-xs border border-zinc-300 rounded-md"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-zinc-400">{formatDateTime(new Date().toISOString())}</td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => submitEdit(inv.store_id, inv.item_id)}
+                                  disabled={updateMutation.isPending}
+                                  className="text-xs text-emerald-600 font-600 hover:underline"
+                                >
+                                  {updateMutation.isPending ? "Saving..." : "Save"}
+                                </button>
+                                <button
+                                  onClick={() => setEditingKey(null)}
+                                  className="text-xs text-zinc-400 hover:underline"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => startEdit(inv.store_id, inv.item_id, inv.qty_on_hand)}
+                                className="text-xs text-zinc-600 font-600 hover:underline"
+                              >
+                                Update
+                              </button>
+                            )}
+                            <Link href={`/inventory/${inv.item_id}`}>
+                              <Button size="sm" variant="secondary">
+                                Analyze
+                              </Button>
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(inv.store_id, inv.item_id, inv.item?.item_name)}
+                              disabled={deleteMutation.isPending}
+                              className="text-xs text-red-500 hover:underline font-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
