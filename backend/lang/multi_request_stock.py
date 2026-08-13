@@ -23,6 +23,10 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+import langchain
+if not hasattr(langchain, "verbose"):
+    langchain.verbose = False
+
 from sqlalchemy import text
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, START, END

@@ -1,5 +1,8 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_google_genai import ChatGoogleGenerativeAI
+import langchain
+if not hasattr(langchain, "verbose"):
+    langchain.verbose = False
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing import TypedDict, List, Dict
 import pandas as pd

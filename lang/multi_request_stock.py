@@ -9,6 +9,9 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
+import langchain
+if not hasattr(langchain, "verbose"):
+    langchain.verbose = False
 load_dotenv()
 
 # We use the robust connection setup we built earlier to prevent Neon DB timeouts
