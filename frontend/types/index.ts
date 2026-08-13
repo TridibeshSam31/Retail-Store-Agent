@@ -147,6 +147,7 @@ export type NegotiationTriggerType = "might_be_low" | "immediately_low";
 export type ResolutionType =
   | "transfer"
   | "even_split"
+  | "partial"
   | "supplier"
   | "cancelled";
 

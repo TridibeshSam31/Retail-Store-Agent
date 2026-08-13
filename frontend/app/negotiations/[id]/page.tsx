@@ -10,8 +10,9 @@ import {
   rejectTransfer,
   addNegotiationTurn,
   getSupplierDraft,
+  getTransfers,
 } from "@/lib/api/client";
-import { StatusBadge, RiskBadge } from "@/components/ui/badges";
+import { StatusBadge, RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { NegotiationSkeleton, ErrorState, Button, EmptyState } from "@/components/ui/primitives";
 import {
   formatDateTime,
@@ -47,18 +48,45 @@ export default function NegotiationDetailPage({ params }: PageProps) {
     }
   }, []);
 
+  // ── State classification ──────────────────────────────────────
+  // status alone can't tell "agent still working" from "ready for
+  // approval" — both are status="proposed". resolution_type is the
+  // real signal that the agent has finished and produced an outcome.
   const { data: neg, isLoading, error, refetch } = useQuery({
     queryKey: ["negotiation", id],
     queryFn: () => getNegotiation(id),
+    // Poll while the agent is still working so turns/resolution appear
+    // without a manual refresh. Stop once there's a resolution or the
+    // negotiation has reached a terminal status.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 2000;
+      const stillWorking = !data.resolution_type && data.status === "proposed";
+      return stillWorking ? 2000 : false;
+    },
+  });
+
+  const isNegotiating = !!neg && !neg.resolution_type && neg.status === "proposed";
+  const isReadyForDecision = !!neg && neg.status === "proposed" && !!neg.resolution_type;
+  const isApproved = neg?.status === "approved";
+  const isRejected = neg?.status === "rejected";
+  const isAborted = neg?.status === "aborted";
+  const isCompleted = neg?.status === "completed";
+
+  const { data: transfers } = useQuery({
+    queryKey: ["transfers", "negotiation", id],
+    queryFn: () => getTransfers(),
+    enabled: !!neg && (neg.resolution_type === "transfer" || neg.resolution_type === "partial"),
+    select: (all) => all.filter((t) => t.negotiation_id === id),
   });
 
   const { data: supplierDraft } = useQuery({
     queryKey: ["supplierDraft", id],
     queryFn: () => getSupplierDraft(id),
-    enabled: neg?.status === "rejected" || neg?.resolution_type === "supplier",
+    enabled: neg?.resolution_type === "supplier",
   });
 
-  // Action mutations
+  // ── Mutations ────────────────────────────────────────────────
   const approveMutation = useMutation({
     mutationFn: () => approveTransfer(id),
     onSuccess: () => {
@@ -75,7 +103,7 @@ export default function NegotiationDetailPage({ params }: PageProps) {
     mutationFn: () => rejectTransfer(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["negotiation", id] });
-      toast.success("Proposal rejected.");
+      toast.success("Proposal rejected. Choose what happens next below.");
       setRejectMode(true);
     },
     onError: (err: unknown) => {
@@ -118,9 +146,6 @@ export default function NegotiationDetailPage({ params }: PageProps) {
     );
   }
 
-  const isProposed = neg.status === "proposed";
-  const isApproved = neg.status === "approved";
-
   return (
     <AppShell>
       <div className="space-y-6">
@@ -142,50 +167,157 @@ export default function NegotiationDetailPage({ params }: PageProps) {
             </h1>
           </div>
           <div className="ml-auto">
-            <StatusBadge variant={negotiationStatusVariant(neg.status)} dot={isProposed}>
-              {negotiationStatusLabel(neg.status)}
+            <StatusBadge variant={negotiationStatusVariant(neg.status)} dot={isNegotiating}>
+              {isNegotiating ? "Agents Negotiating" : negotiationStatusLabel(neg.status)}
             </StatusBadge>
           </div>
         </div>
 
-        {/* Resolution details panel */}
-        {neg.resolution_type && (
-          <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
-            <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-955">
-              Resolution Decision: {resolutionLabel(neg.resolution_type)}
-            </h2>
+        {/* Status panel — always renders, single source of truth for "what's happening" */}
+        <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-3">
+          {isNegotiating && (
+            <div className="flex items-center gap-3">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse-dot shrink-0" />
+              <div>
+                <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Agents are negotiating</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Store agents are exchanging arguments below. No action is needed from you yet — this page will update automatically once a proposal is ready.
+                </p>
+              </div>
+            </div>
+          )}
 
-            {/* Supplier Escalation Panel */}
-            {neg.resolution_type === "supplier" && (
-              <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">External Supplier Restock Proposal</p>
-                  <span className="text-[9px] font-600 text-zinc-500 bg-zinc-200 rounded px-1">No network surplus available</span>
-                </div>
-                {supplierDraft && supplierDraft.has_supplier ? (
-                  <div className="space-y-3 pt-1">
-                    <div className="bg-white border border-zinc-200 rounded p-3 text-xs font-mono text-zinc-700 whitespace-pre-wrap">
-                      {supplierDraft.message}
+          {isReadyForDecision && (
+            <div className="flex items-center gap-3">
+              <span className="size-2 rounded-full bg-blue-500 shrink-0" />
+              <div>
+                <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">
+                  Ready for your approval — {resolutionLabel(neg.resolution_type!)}
+                </h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  The agents finished negotiating. Review the outcome below and approve or reject it.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isApproved && (
+            <div className="flex items-center gap-3">
+              <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+              <div>
+                <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Approved — awaiting physical transfer</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  You approved this transfer. It completes once both stores confirm the stock has physically moved.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isRejected && (
+            <div className="flex items-center gap-3">
+              <span className="size-2 rounded-full bg-red-500 shrink-0" />
+              <div>
+                <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Rejected</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  You rejected this proposal. Choose to renegotiate or contact the supplier below.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isAborted && (
+            <div className="flex items-center gap-3">
+              <span className="size-2 rounded-full bg-zinc-400 shrink-0" />
+              <div>
+                <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Cancelled</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  This negotiation was cancelled. If the shortage is still active, it will be re-flagged on the next prediction cycle.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {isCompleted && (
+            <div className="flex items-center gap-3">
+              <span className="size-2 rounded-full bg-emerald-600 shrink-0" />
+              <div>
+                <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Completed</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">This negotiation has been fully resolved.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Outcome details — shown whenever a resolution exists */}
+          {neg.resolution_type === "supplier" && (
+            <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-3 mt-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">External Supplier Restock Proposal</p>
+                <span className="text-[9px] font-600 text-zinc-500 bg-zinc-200 rounded px-1">No network surplus available</span>
+              </div>
+              {supplierDraft && supplierDraft.has_supplier ? (
+                <div className="space-y-3 pt-1">
+                  <div className="bg-white border border-zinc-200 rounded p-3 text-xs font-mono text-zinc-700 whitespace-pre-wrap">
+                    {supplierDraft.message}
+                  </div>
+                  {supplierDraft.link && (
+                    <div className="flex justify-end">
+                      <a href={supplierDraft.link} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="primary">
+                          Open WhatsApp Link
+                        </Button>
+                      </a>
                     </div>
-                    {supplierDraft.link && (
-                      <div className="flex justify-end">
-                        <a href={supplierDraft.link} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="primary">
-                            Open WhatsApp Link
-                          </Button>
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-xs text-zinc-450 italic py-2">
-                    {supplierDraft?.instruction || "No supplier configured for this product category. Restock must be initiated manually."}
-                  </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-zinc-450 italic py-2">
+                  {supplierDraft?.instruction || "No supplier configured for this product category. Restock must be initiated manually."}
+                </div>
+              )}
+            </div>
+          )}
+
+          {(neg.resolution_type === "transfer" || neg.resolution_type === "partial") && (
+            <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-2 mt-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Proposed Transfers</p>
+                {neg.resolution_type === "partial" && (
+                  <span className="text-[9px] font-600 text-amber-700 bg-amber-100 rounded px-1 uppercase">Partial — surplus exhausted or even split</span>
                 )}
               </div>
-            )}
-          </div>
-        )}
+              {!transfers ? (
+                <p className="text-xs text-zinc-400">Loading transfer details...</p>
+              ) : transfers.length === 0 ? (
+                <p className="text-xs text-zinc-400 italic">No transfer records found for this negotiation yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {transfers.map((t) => (
+                    <div key={t.transfer_id} className="bg-white border border-zinc-200 rounded p-3 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <StoreBadge storeId={t.from_store_id} size="sm" />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-400">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                        <StoreBadge storeId={t.to_store_id} size="sm" />
+                        <span className="text-zinc-500 font-600">{t.qty} units</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {t.completed_at ? (
+                          <span className="text-emerald-600 font-700 uppercase text-[10px]">Physically Confirmed</span>
+                        ) : (
+                          <span className="text-zinc-450 font-600 uppercase text-[10px]">
+                            {t.confirmed_from && t.confirmed_to ? "Confirming..." : t.confirmed_from || t.confirmed_to ? "Awaiting one party" : "Awaiting both parties"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Negotiation Turn Transcript */}
         <div className="bg-white border border-zinc-200 rounded-lg shadow-sm flex flex-col">
@@ -202,22 +334,27 @@ export default function NegotiationDetailPage({ params }: PageProps) {
           </div>
 
           <div className="p-6 space-y-6 max-h-[500px] overflow-y-auto">
-            {neg.turns && neg.turns.length === 0 ? (
-              <EmptyState title="Transcript Empty" description="Agent negotiation has started but no logs have been recorded yet." />
+            {!neg.turns || neg.turns.length === 0 ? (
+              <EmptyState
+                title={isNegotiating ? "Agents are just getting started" : "Transcript Empty"}
+                description={
+                  isNegotiating
+                    ? "No turns recorded yet — this will fill in as the negotiation proceeds."
+                    : "No logs were recorded for this negotiation."
+                }
+              />
             ) : (
-              neg.turns?.map((turn) => {
+              neg.turns.map((turn) => {
                 const isArbitrator = turn.store_id === null;
 
                 return (
                   <div key={turn.turn_id} className={cn("flex gap-3", isArbitrator ? "justify-center" : "items-start")}>
-                    {/* Agent avatar icon */}
                     {!isArbitrator && (
                       <div className="size-8 rounded-full bg-zinc-900 text-white border border-zinc-200 text-[10px] font-800 flex items-center justify-center shrink-0">
                         {turn.store_id ? `S${turn.store_id}` : "?"}
                       </div>
                     )}
 
-                    {/* Chat Bubble container */}
                     <div
                       className={cn(
                         "rounded-lg border p-4 space-y-2 max-w-xl shadow-sm text-xs",
@@ -255,12 +392,12 @@ export default function NegotiationDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Manager Action Decisions Panel */}
-        {isProposed && (
+        {/* Manager Action Panel — only when there's actually something to decide */}
+        {isReadyForDecision && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Pending Manager Action</h3>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              Review agent recommendations. You are logged in as Store {storeId} Manager — this transaction requires your approval to move to physical stock allocation status.
+              You are logged in as Store {storeId} Manager. Review the proposed outcome above — this requires your approval to move to physical stock allocation.
             </p>
 
             {!rejectMode ? (
@@ -302,6 +439,38 @@ export default function NegotiationDetailPage({ params }: PageProps) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Already-rejected but not yet re-decided: same renegotiate/contact-supplier choice */}
+        {isRejected && (
+          <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Choose Next Step</h3>
+            <div className="border border-zinc-150 rounded-lg p-4 space-y-3 bg-zinc-50">
+              <label className="block text-xs font-700 text-zinc-650 uppercase">Renegotiation Argument (Optional)</label>
+              <textarea
+                placeholder="Specify renegotiation message or target quantities..."
+                value={renegotiateArg}
+                onChange={(e) => setRenegotiateArg(e.target.value)}
+                className="w-full h-20 px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-white"
+              />
+              <div className="flex gap-2">
+                <Button variant="primary" size="sm" onClick={() => renegotiateMutation.mutate()} loading={renegotiateMutation.isPending}>
+                  Start Renegotiation
+                </Button>
+                {supplierDraft?.has_supplier ? (
+                  <a href={supplierDraft.link} target="_blank" rel="noopener noreferrer">
+                    <Button variant="secondary" size="sm">
+                      Contact Supplier
+                    </Button>
+                  </a>
+                ) : (
+                  <Button variant="secondary" size="sm" onClick={() => toast.info("Escalating to supplier offline.")}>
+                    Contact Supplier
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
