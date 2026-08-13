@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 from typing import TypedDict, List, Optional
 from urllib.parse import quote
+from dotenv import load_dotenv
+load_dotenv()
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(BACKEND_ROOT) not in sys.path:
@@ -26,6 +28,8 @@ if str(BACKEND_ROOT) not in sys.path:
 import langchain
 if not hasattr(langchain, "verbose"):
     langchain.verbose = False
+if not hasattr(langchain, "debug"):
+    langchain.debug = False
 
 from sqlalchemy import text
 from langgraph.checkpoint.memory import MemorySaver
