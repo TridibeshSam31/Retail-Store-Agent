@@ -122,6 +122,7 @@ def detect_shortage(state: AgentState):
             SELECT ci.store_id, sd.est_hours
             FROM current_inventory ci
             JOIN store_distances sd ON sd.store_id_a = :deficit_store AND sd.store_id_b = ci.store_id
+            JOIN stores s ON ci.store_id = s.store_id
             WHERE ci.item_id = :item AND ci.store_id != :deficit_store AND s.org_id = :org_id
             ORDER BY sd.est_hours ASC
         """), {"deficit_store": deficit_store, "item": item_id,"org_id": org_id}).fetchall()
