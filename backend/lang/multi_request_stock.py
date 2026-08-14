@@ -99,6 +99,7 @@ def detect_shortage(state: AgentState):
         neg = db.get(Negotiation, negotiation_id)
         deficit_store = neg.initiator_store_id
         item_id = neg.item_id
+        org_id = neg.org_id
 
         d_result = db.execute(text("""
             SELECT ci.qty_on_hand, dp.rop, dp.eoq, dp.predicted_demand
@@ -121,9 +122,9 @@ def detect_shortage(state: AgentState):
             SELECT ci.store_id, sd.est_hours
             FROM current_inventory ci
             JOIN store_distances sd ON sd.store_id_a = :deficit_store AND sd.store_id_b = ci.store_id
-            WHERE ci.item_id = :item AND ci.store_id != :deficit_store
+            WHERE ci.item_id = :item AND ci.store_id != :deficit_store AND s.org_id = :org_id
             ORDER BY sd.est_hours ASC
-        """), {"deficit_store": deficit_store, "item": item_id}).fetchall()
+        """), {"deficit_store": deficit_store, "item": item_id,"org_id": org_id}).fetchall()
 
         surplus_stores_list = []
         for store_id, est_hours in candidates:

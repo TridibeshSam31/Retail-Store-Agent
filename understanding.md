@@ -381,3 +381,4 @@ CREATE TABLE config (
 );
 ```
 
+1. each organiztion shoudld boorw form that store only
