@@ -80,6 +80,16 @@ export default function NegotiationDetailPage({ params }: PageProps) {
     select: (all) => all.filter((t) => t.negotiation_id === id),
   });
 
+  // Check if current user/session store is a participant in this negotiation
+  const isParticipant = React.useMemo(() => {
+    if (!neg) return false;
+    const initId = neg.initiator_store_id ?? neg.initiating_store_id;
+    if (initId === storeId) return true;
+    if (neg.turns?.some((t) => t.store_id === storeId)) return true;
+    if (transfers?.some((t) => t.from_store_id === storeId || t.to_store_id === storeId)) return true;
+    return false;
+  }, [neg, storeId, transfers]);
+
   const { data: supplierDraft } = useQuery({
     queryKey: ["supplierDraft", id],
     queryFn: () => getSupplierDraft(id),
@@ -192,10 +202,10 @@ export default function NegotiationDetailPage({ params }: PageProps) {
               <span className="size-2 rounded-full bg-blue-500 shrink-0" />
               <div>
                 <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">
-                  Ready for your approval — {resolutionLabel(neg.resolution_type!)}
+                  Ready for approval — {resolutionLabel(neg.resolution_type!)}
                 </h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  The agents finished negotiating. Review the outcome below and approve or reject it.
+                  The agents finished negotiating. Review the outcome below.
                 </p>
               </div>
             </div>
@@ -207,7 +217,7 @@ export default function NegotiationDetailPage({ params }: PageProps) {
               <div>
                 <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Approved — awaiting physical transfer</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  You approved this transfer. It completes once both stores confirm the stock has physically moved.
+                  This transfer proposal was approved. It completes once both stores confirm the stock has physically moved.
                 </p>
               </div>
             </div>
@@ -219,7 +229,7 @@ export default function NegotiationDetailPage({ params }: PageProps) {
               <div>
                 <h2 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Rejected</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  You rejected this proposal. Choose to renegotiate or contact the supplier below.
+                  This proposal was rejected.
                 </p>
               </div>
             </div>
@@ -392,8 +402,8 @@ export default function NegotiationDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Manager Action Panel — only when there's actually something to decide */}
-        {isReadyForDecision && (
+        {/* Manager Action Panel — strictly scoped to participant stores */}
+        {isReadyForDecision && isParticipant && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Pending Manager Action</h3>
             <p className="text-xs text-zinc-500 leading-relaxed">
@@ -442,8 +452,16 @@ export default function NegotiationDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Already-rejected but not yet re-decided: same renegotiate/contact-supplier choice */}
-        {isRejected && (
+        {/* Observer Mode Indicator — shown when ready for decision but current store is unrelated */}
+        {isReadyForDecision && !isParticipant && (
+          <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 text-xs text-zinc-500 flex items-center justify-between">
+            <span>Proposal decision pending authorization from participating store managers (Store #{neg.initiator_store_id ?? neg.initiating_store_id}).</span>
+            <span className="text-[10px] font-mono text-zinc-400 uppercase font-700 bg-zinc-200/60 px-2 py-0.5 rounded">Observer Mode</span>
+          </div>
+        )}
+
+        {/* Already-rejected: strictly scoped to participant stores */}
+        {isRejected && isParticipant && (
           <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Choose Next Step</h3>
             <div className="border border-zinc-150 rounded-lg p-4 space-y-3 bg-zinc-50">
@@ -474,8 +492,8 @@ export default function NegotiationDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Manager Post-Approval State */}
-        {isApproved && (
+        {/* Manager Post-Approval Action Card — strictly scoped to participant stores */}
+        {isApproved && isParticipant && (
           <div className="bg-zinc-900 border border-zinc-800 text-zinc-50 rounded-lg p-5 shadow-sm space-y-2">
             <h3 className="text-sm font-700 text-white uppercase flex items-center gap-2">
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse-dot" />
