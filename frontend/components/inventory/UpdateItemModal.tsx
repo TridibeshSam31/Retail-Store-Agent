@@ -2,20 +2,29 @@
 
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { updateItem, updateInventoryItem } from "@/lib/api/client";
+import { createItem, updateItem, updateInventoryItem } from "@/lib/api/client";
 import { Button } from "@/components/ui/primitives";
 import { toast } from "sonner";
 import type { CurrentInventory } from "@/types";
 
-interface UpdateItemModalProps {
+export interface UpdateItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  inventoryItem: CurrentInventory | null;
+  mode?: "edit" | "add";
+  inventoryItem?: CurrentInventory | null;
+  targetStoreId?: number;
 }
 
-export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemModalProps) {
+export function UpdateItemModal({
+  isOpen,
+  onClose,
+  mode = "edit",
+  inventoryItem,
+  targetStoreId,
+}: UpdateItemModalProps) {
   const queryClient = useQueryClient();
 
+  const isAddMode = mode === "add";
   const [itemName, setItemName] = useState("");
   const [category, setCategory] = useState("");
   const [unit, setUnit] = useState("");
@@ -23,17 +32,29 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
   const [isPending, setIsPending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (inventoryItem) {
-      setItemName(inventoryItem.item?.item_name ?? "");
-      setCategory(inventoryItem.item?.category ?? "");
-      setUnit(inventoryItem.item?.unit ?? "units");
-      setQtyOnHand(inventoryItem.qty_on_hand ?? 0);
-      setErrorMsg(null);
-    }
-  }, [inventoryItem]);
+  const effectiveStoreId = isAddMode
+    ? targetStoreId || 1
+    : inventoryItem?.store_id || 1;
 
-  if (!isOpen || !inventoryItem) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setErrorMsg(null);
+      if (isAddMode) {
+        setItemName("");
+        setCategory("");
+        setUnit("units");
+        setQtyOnHand(0);
+      } else if (inventoryItem) {
+        setItemName(inventoryItem.item?.item_name ?? "");
+        setCategory(inventoryItem.item?.category ?? "");
+        setUnit(inventoryItem.item?.unit ?? "units");
+        setQtyOnHand(inventoryItem.qty_on_hand ?? 0);
+      }
+    }
+  }, [isOpen, isAddMode, inventoryItem]);
+
+  if (!isOpen) return null;
+  if (!isAddMode && !inventoryItem) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,30 +66,51 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
       return;
     }
 
+    if (!itemName.trim() || !category.trim()) {
+      setErrorMsg("Item Name and Category are required.");
+      return;
+    }
+
     setIsPending(true);
 
     try {
-      const storeId = inventoryItem.store_id;
-      const itemId = inventoryItem.item_id;
-
-      // 1. Update item attributes if modified
-      const itemChanged =
-        itemName !== inventoryItem.item?.item_name ||
-        category !== inventoryItem.item?.category ||
-        unit !== inventoryItem.item?.unit;
-
-      if (itemChanged && itemId) {
-        await updateItem(itemId, {
-          item_name: itemName,
-          category,
-          unit,
+      if (isAddMode) {
+        // 1. Create item catalog entry
+        const newItem = await createItem({
+          item_name: itemName.trim(),
+          category: category.trim(),
+          unit: unit.trim() || "units",
         });
+
+        // 2. Set initial inventory stock quantity for target store
+        await updateInventoryItem(effectiveStoreId, newItem.item_id, parsedQty);
+
+        toast.success(`Added ${itemName} to Store #${effectiveStoreId} successfully.`);
+      } else if (inventoryItem) {
+        const storeId = inventoryItem.store_id;
+        const itemId = inventoryItem.item_id;
+
+        // 1. Update item attributes if modified
+        const itemChanged =
+          itemName !== inventoryItem.item?.item_name ||
+          category !== inventoryItem.item?.category ||
+          unit !== inventoryItem.item?.unit;
+
+        if (itemChanged && itemId) {
+          await updateItem(itemId, {
+            item_name: itemName.trim(),
+            category: category.trim(),
+            unit: unit.trim() || "units",
+          });
+        }
+
+        // 2. Update inventory quantity
+        await updateInventoryItem(storeId, itemId, parsedQty);
+
+        toast.success(`Updated ${itemName || "item"} successfully.`);
       }
 
-      // 2. Update inventory quantity
-      await updateInventoryItem(storeId, itemId, parsedQty);
-
-      // 3. Invalidate TanStack Query caches to sync UI
+      // 3. Invalidate query caches to sync UI immediately
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["inventory"] }),
         queryClient.invalidateQueries({ queryKey: ["items"] }),
@@ -76,10 +118,9 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       ]);
 
-      toast.success(`Updated ${itemName || "item"} successfully.`);
       onClose();
     } catch (err: unknown) {
-      const message = (err as Error)?.message ?? "Failed to update item.";
+      const message = (err as Error)?.message ?? "Failed to save item.";
       setErrorMsg(message);
       toast.error(message);
     } finally {
@@ -97,10 +138,12 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
         <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
           <div>
             <span className="text-[10px] font-mono font-700 text-zinc-400 uppercase tracking-wider">
-              Store #{inventoryItem.store_id} • Item #{inventoryItem.item_id}
+              {isAddMode
+                ? `STORE #${effectiveStoreId}`
+                : `STORE #${inventoryItem?.store_id} • ITEM #${inventoryItem?.item_id}`}
             </span>
             <h2 className="text-base font-800 text-zinc-950 uppercase tracking-tight">
-              Update Inventory Item
+              {isAddMode ? "Add Inventory Item" : "Update Inventory Item"}
             </h2>
           </div>
           <button
@@ -130,6 +173,7 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
             <input
               type="text"
               required
+              placeholder="e.g. Mango"
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
@@ -144,6 +188,7 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
               <input
                 type="text"
                 required
+                placeholder="e.g. Produce"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
@@ -157,6 +202,7 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
               <input
                 type="text"
                 required
+                placeholder="e.g. kg"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
@@ -166,7 +212,7 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
 
           <div className="space-y-1.5 pt-1">
             <label className="text-xs font-700 text-zinc-700 uppercase tracking-wider">
-              Current Quantity on Hand
+              {isAddMode ? "Quantity on Hand" : "Current Quantity on Hand"}
             </label>
             <input
               type="number"
@@ -190,7 +236,13 @@ export function UpdateItemModal({ isOpen, onClose, inventoryItem }: UpdateItemMo
               Cancel
             </Button>
             <Button type="submit" size="sm" disabled={isPending}>
-              {isPending ? "Saving..." : "Save Changes"}
+              {isPending
+                ? isAddMode
+                  ? "Adding..."
+                  : "Saving..."
+                : isAddMode
+                ? "Add Item"
+                : "Save Changes"}
             </Button>
           </div>
         </form>
