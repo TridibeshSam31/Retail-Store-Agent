@@ -69,7 +69,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6 max-w-[1100px] mx-auto">
+      <div className="space-y-6 w-full max-w-[1400px] mx-auto">
 
         {/* ─── KPI Summary Row ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

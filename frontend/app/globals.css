@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Premium Dayos Theme Colors */
+  /* Premium WareAgent Theme Colors */
   --background: #f8f9fa;
   --surface: #ffffff;
   --surface-dark: #09090b;
@@ -107,7 +107,7 @@ body {
 
 /* Heavy Editorial Typography */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--text-primary);
+  color: inherit;
   font-weight: 800;
   letter-spacing: -0.03em;
 }

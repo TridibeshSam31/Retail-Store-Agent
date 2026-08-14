@@ -71,6 +71,7 @@ export function resolutionLabel(type: ResolutionType): string {
   const labels: Record<ResolutionType, string> = {
     transfer: "Transfer",
     even_split: "Even Split",
+    partial: "Partial Split",
     supplier: "Supplier",
     cancelled: "Cancelled",
   };

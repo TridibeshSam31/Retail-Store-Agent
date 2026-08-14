@@ -10,6 +10,8 @@ import { CardSkeleton, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDateTime } from "@/lib/formatting";
 import Link from "next/link";
 
+import { UpdateItemModal } from "@/components/inventory/UpdateItemModal";
+
 interface PageProps {
   params: Promise<{ id: string }> | { id: string };
 }
@@ -22,6 +24,7 @@ export default function InventoryDetailPage({ params }: PageProps) {
   const id = Number(resolvedParams.id);
 
   const [storeId, setStoreId] = useState<number>(1);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -42,19 +45,26 @@ export default function InventoryDetailPage({ params }: PageProps) {
     <AppShell>
       <div className="space-y-6">
         {/* Back and title */}
-        <div className="flex items-center gap-3">
-          <Link href="/inventory" className="text-zinc-400 hover:text-zinc-900 transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-          </Link>
-          <div>
-            <span className="text-[10px] font-700 uppercase tracking-widest text-zinc-400">Inventory analysis</span>
-            <h1 className="text-xl font-800 text-zinc-950 uppercase tracking-tight">
-              {isLoading ? "Loading Item..." : inv?.item?.item_name}
-            </h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link href="/inventory" className="text-zinc-400 hover:text-zinc-900 transition-colors">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+            </Link>
+            <div>
+              <span className="text-[10px] font-700 uppercase tracking-widest text-zinc-400">Inventory analysis</span>
+              <h1 className="text-xl font-800 text-zinc-950 uppercase tracking-tight">
+                {isLoading ? "Loading Item..." : inv?.item?.item_name}
+              </h1>
+            </div>
           </div>
+          {inv && (
+            <Button size="sm" onClick={() => setIsUpdateModalOpen(true)}>
+              Update Item
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
@@ -200,6 +210,12 @@ export default function InventoryDetailPage({ params }: PageProps) {
           </div>
         )}
       </div>
+
+      <UpdateItemModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        inventoryItem={inv ?? null}
+      />
     </AppShell>
   );
 }

@@ -4,8 +4,8 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    default: "Multi-Store AI — Retail Operations",
-    template: "%s | Multi-Store AI",
+    default: "WareAgent — Retail Operations",
+    template: "%s | WareAgent",
   },
   description:
     "AI-powered multi-store retail inventory management. Prediction-driven shortage detection, autonomous agent negotiation, and transfer management.",
