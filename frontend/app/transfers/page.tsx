@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getTransfers, confirmTransferShipment } from "@/lib/api/client";
+import { useAppStore } from "@/lib/store";
 import { StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDateTime } from "@/lib/formatting";
@@ -13,19 +14,11 @@ import { cn } from "@/lib/utils";
 
 export default function TransfersPage() {
   const queryClient = useQueryClient();
-  const [storeId, setStoreId] = useState<number>(1);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedStoreId = localStorage.getItem("store_id");
-      if (savedStoreId) {
-        setStoreId(Number(savedStoreId));
-      }
-    }
-  }, []);
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
 
   const { data: transfers, isLoading, error, refetch } = useQuery({
-    queryKey: ["transfers"],
+    queryKey: ["transfers", activeOrgId, activeStoreId],
     queryFn: () => getTransfers(),
   });
 
@@ -98,8 +91,8 @@ export default function TransfersPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {transfers?.map((xfer) => {
-                    const isSourceStore = xfer.from_store_id === storeId;
-                    const isDestStore = xfer.to_store_id === storeId;
+                    const isSourceStore = xfer.from_store_id === activeStoreId;
+                    const isDestStore = xfer.to_store_id === activeStoreId;
                     const isStoreInvolved = isSourceStore || isDestStore;
                     const isAlreadyConfirmed = isSourceStore ? xfer.from_confirmed : xfer.to_confirmed;
                     const isActionRequired = isStoreInvolved && !isAlreadyConfirmed;

@@ -3,14 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getExpiryAlerts } from "@/lib/api/client";
+import { useAppStore } from "@/lib/store";
 import { StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDate } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
 
 export default function ExpiryPage() {
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
+
   const { data: alerts, isLoading, error, refetch } = useQuery({
-    queryKey: ["expiryAlerts"],
+    queryKey: ["expiryAlerts", activeOrgId, activeStoreId],
     queryFn: () => getExpiryAlerts(),
   });
 

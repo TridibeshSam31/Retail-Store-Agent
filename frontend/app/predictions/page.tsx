@@ -5,13 +5,17 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getInventory } from "@/lib/api/client";
 import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState } from "@/components/ui/primitives";
-import { formatQuantity } from "@/lib/formatting";
+import { useAppStore } from "@/lib/store";
+import { formatQuantity, getInventoryTrigger } from "@/lib/formatting";
 import Link from "next/link";
 
 export default function PredictionsPage() {
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
+
   const { data: inventory, isLoading, error } = useQuery({
-    queryKey: ["inventory", "predictions"],
-    queryFn: () => getInventory(),
+    queryKey: ["inventory", "predictions", activeOrgId, activeStoreId],
+    queryFn: () => getInventory({ store_id: activeStoreId }),
   });
 
   // Filter items that have predictions and stock alerts
@@ -128,7 +132,7 @@ export default function PredictionsPage() {
                         {inv.prediction?.eoq} {inv.item?.unit ?? "units"}
                       </td>
                       <td className="px-4 py-3.5">
-                        <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
+                        <RiskBadge trigger={getInventoryTrigger(inv)} />
                       </td>
                     </tr>
                   ))}

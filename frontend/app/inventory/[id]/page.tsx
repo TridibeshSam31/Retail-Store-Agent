@@ -7,8 +7,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getInventoryItem } from "@/lib/api/client";
 import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { CardSkeleton, Button } from "@/components/ui/primitives";
-import { formatQuantity, formatDateTime } from "@/lib/formatting";
+import { useAppStore } from "@/lib/store";
+import { formatQuantity, formatDateTime, getInventoryTrigger } from "@/lib/formatting";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 import { UpdateItemModal } from "@/components/inventory/UpdateItemModal";
 
@@ -23,22 +25,14 @@ export default function InventoryDetailPage({ params }: PageProps) {
   );
   const id = Number(resolvedParams.id);
 
-  const [storeId, setStoreId] = useState<number>(1);
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedStoreId = localStorage.getItem("store_id");
-      if (savedStoreId) {
-        setStoreId(Number(savedStoreId));
-      }
-    }
-  }, []);
-
   const { data: inv, isLoading, error } = useQuery({
-    queryKey: ["inventoryItem", storeId, id],
-    queryFn: () => getInventoryItem(storeId, id),
-    enabled: !!storeId,
+    queryKey: ["inventoryItem", activeOrgId, activeStoreId, id],
+    queryFn: () => getInventoryItem(activeStoreId, id),
+    enabled: !!activeStoreId,
   });
 
   return (
@@ -89,7 +83,7 @@ export default function InventoryDetailPage({ params }: PageProps) {
                   </div>
                   <div className="text-right space-y-1">
                     <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Risk Status</p>
-                    <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
+                    <RiskBadge trigger={getInventoryTrigger(inv)} />
                   </div>
                 </div>
 
@@ -106,7 +100,14 @@ export default function InventoryDetailPage({ params }: PageProps) {
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Time to Stockout</p>
-                    <p className="text-3xl font-800 text-amber-700 font-mono">
+                    <p className={cn(
+                      "text-3xl font-800 font-mono",
+                      inv.time_to_stockout == null || inv.time_to_stockout > 7
+                        ? "text-zinc-900"
+                        : inv.time_to_stockout <= 3
+                        ? "text-red-600"
+                        : "text-amber-600"
+                    )}>
                       {inv.time_to_stockout != null ? `${inv.time_to_stockout.toFixed(1)}d` : "—"}
                     </p>
                   </div>

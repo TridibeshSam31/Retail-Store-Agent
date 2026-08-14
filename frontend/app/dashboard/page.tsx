@@ -7,40 +7,33 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getInventory, getNegotiations, getTransfers, getExpiryAlerts } from "@/lib/api/client";
 import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { Button, CardSkeleton, EmptyState, ErrorState, Skeleton } from "@/components/ui/primitives";
-import { formatQuantity, formatDate } from "@/lib/formatting";
+import { useAppStore } from "@/lib/store";
+import { formatQuantity, formatDate, getInventoryTrigger } from "@/lib/formatting";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const [storeId, setStoreId] = useState<number>(1);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedStoreId = localStorage.getItem("store_id");
-      if (savedStoreId) {
-        setStoreId(Number(savedStoreId));
-      }
-    }
-  }, []);
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
 
   const { data: inventory, isLoading: invLoading, error: invError, refetch: refetchInv } = useQuery({
-    queryKey: ["inventory", "all"],
-    queryFn: () => getInventory(),
+    queryKey: ["inventory", activeOrgId, activeStoreId],
+    queryFn: () => getInventory({ store_id: activeStoreId }),
   });
 
   const { data: negotiations, isLoading: negLoading, error: negError, refetch: refetchNeg } = useQuery({
-    queryKey: ["negotiations"],
-    queryFn: () => getNegotiations(),
+    queryKey: ["negotiations", activeOrgId, activeStoreId],
+    queryFn: () => getNegotiations({ store_id: activeStoreId }),
   });
 
   const { data: transfers, isLoading: xferLoading, error: xferError, refetch: refetchXfer } = useQuery({
-    queryKey: ["transfers"],
-    queryFn: () => getTransfers(),
+    queryKey: ["transfers", activeOrgId, activeStoreId],
+    queryFn: () => getTransfers(activeStoreId),
   });
 
   const { data: expiry, isLoading: expLoading, error: expError, refetch: refetchExp } = useQuery({
-    queryKey: ["expiry"],
-    queryFn: () => getExpiryAlerts(),
+    queryKey: ["expiry", activeOrgId, activeStoreId],
+    queryFn: () => getExpiryAlerts(activeStoreId),
   });
 
   const isAnyLoading = invLoading || negLoading || xferLoading || expLoading;
@@ -53,8 +46,8 @@ export default function DashboardPage() {
     refetchExp();
   };
 
-  const criticalShortages = inventory?.filter(item => item.prediction && item.qty_on_hand <= item.prediction.rop) ?? [];
-  const predictionWarnings = inventory?.filter(item => item.prediction && item.qty_on_hand > item.prediction.rop && item.qty_on_hand <= item.prediction.rop * 1.5) ?? [];
+  const criticalShortages = inventory?.filter(item => getInventoryTrigger(item) === "immediately_low") ?? [];
+  const predictionWarnings = inventory?.filter(item => getInventoryTrigger(item) === "might_be_low") ?? [];
   const pendingApprovals = negotiations?.filter(neg => neg.status === "proposed" || neg.status === "approved") ?? [];
   const awaitingConfirms = transfers?.filter(xfer => !xfer.is_complete) ?? [];
   const urgentExpiries = expiry?.filter(exp => exp.days_until_expiry && exp.days_until_expiry <= 7) ?? [];
@@ -225,7 +218,7 @@ export default function DashboardPage() {
                 ))}
 
                 {awaitingConfirms.slice(0, 3).map((xfer) => {
-                  const isFromStore = xfer.from_store_id === storeId;
+                  const isFromStore = xfer.from_store_id === activeStoreId;
                   const isConfirmed = isFromStore ? xfer.from_confirmed : xfer.to_confirmed;
 
                   return (

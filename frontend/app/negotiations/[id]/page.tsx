@@ -271,9 +271,17 @@ export default function NegotiationDetailPage({ params }: PageProps) {
                   </div>
                   {supplierDraft.link && (
                     <div className="flex justify-end">
-                      <a href={supplierDraft.link} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={
+                          supplierDraft.link.includes("text=")
+                            ? supplierDraft.link
+                            : `https://wa.me/919876543210?text=${encodeURIComponent(supplierDraft.message || "")}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <Button size="sm" variant="primary">
-                          Open WhatsApp Link
+                          Send Message
                         </Button>
                       </a>
                     </div>

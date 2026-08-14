@@ -1,26 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getNegotiations, getStores } from "@/lib/api/client";
 import { StatusBadge, RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
+import { useAppStore } from "@/lib/store";
 import { negotiationStatusLabel, negotiationStatusVariant, resolutionLabel, formatDateTime } from "@/lib/formatting";
 import type { NegotiationStatus } from "@/types";
 import Link from "next/link";
 
 export default function NegotiationsPage() {
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
+
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [storeFilter, setStoreFilter] = useState<string>(String(activeStoreId || "all"));
+
+  useEffect(() => {
+    setStoreFilter(String(activeStoreId));
+  }, [activeStoreId]);
 
   const { data: stores } = useQuery({
-    queryKey: ["stores"],
+    queryKey: ["stores", activeOrgId],
     queryFn: () => getStores(),
   });
 
   const { data: negotiations, isLoading, error, refetch } = useQuery({
-    queryKey: ["negotiations", statusFilter, storeFilter],
+    queryKey: ["negotiations", activeOrgId, activeStoreId, statusFilter, storeFilter],
     queryFn: () =>
       getNegotiations({
         status: statusFilter !== "all" ? (statusFilter as NegotiationStatus) : undefined,

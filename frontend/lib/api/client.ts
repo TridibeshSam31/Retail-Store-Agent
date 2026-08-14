@@ -7,6 +7,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { getInventoryTrigger } from "@/lib/formatting";
+
 import type {
   Store,
   Org,
@@ -162,7 +164,10 @@ const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 export async function getOrgs(): Promise<Org[]> {
   if (IS_DEMO) {
     await delay();
-    return [{ org_id: 1, org_name: "RetailCo India" }];
+    return [
+      { org_id: 1, org_name: "RetailCo India Co-op" },
+      { org_id: 2, org_name: "Delhi Fresh Mart Co-op" },
+    ];
   }
   return get<Org[]>("/identity/orgs", false, false);
 }
@@ -170,7 +175,7 @@ export async function getOrgs(): Promise<Org[]> {
 export async function getStoresForPicker(orgId: number): Promise<Store[]> {
   if (IS_DEMO) {
     await delay();
-    return DEMO_STORES.map(s => ({ ...s, org_id: orgId }));
+    return DEMO_STORES.filter((s) => s.org_id === orgId);
   }
   return get<Store[]>(`/identity/stores?org_id=${orgId}`, false, false);
 }
@@ -178,10 +183,11 @@ export async function getStoresForPicker(orgId: number): Promise<Store[]> {
 export async function selectIdentity(orgId: number, storeId: number): Promise<UserSession> {
   if (IS_DEMO) {
     await delay();
+    const matchedStore = DEMO_STORES.find((s) => s.store_id === storeId);
     return {
       org_id: orgId,
       store_id: storeId,
-      location_name: DEMO_STORES.find(s => s.store_id === storeId)?.location_name ?? "Store 1",
+      location_name: matchedStore?.location_name ?? `Store #${storeId}`,
       expiry_alerts: DEMO_EXPIRY,
     };
   }
@@ -212,13 +218,23 @@ export async function deleteStore(id: number): Promise<void> {
 
 // ─── Stores ──────────────────────────────────────────────────
 
-export async function getStores(): Promise<Store[]> {
-  if (IS_DEMO) { await delay(); return DEMO_STORES.map(s => ({ ...s, org_id: 1 })); }
-  return get<Store[]>("/stores");
+export async function getStores(orgId?: number): Promise<Store[]> {
+  if (IS_DEMO) {
+    await delay();
+    if (orgId) {
+      return DEMO_STORES.filter((s) => s.org_id === orgId);
+    }
+    return DEMO_STORES;
+  }
+  const url = orgId ? `/stores?org_id=${orgId}` : "/stores";
+  return get<Store[]>(url);
 }
 
 export async function getStore(id: number): Promise<Store> {
-  if (IS_DEMO) { await delay(); return DEMO_STORES.map(s => ({ ...s, org_id: 1 })).find((s) => s.store_id === id)!; }
+  if (IS_DEMO) {
+    await delay();
+    return DEMO_STORES.find((s) => s.store_id === id) ?? DEMO_STORES[0];
+  }
   return get<Store>(`/stores/${id}`);
 }
 
@@ -303,7 +319,7 @@ export async function getInventory(filters?: InventoryFilters): Promise<CurrentI
   }
   if (filters?.trigger && filters.trigger !== "all") {
     data = data.filter((i) => {
-      const trigger = i.prediction ? (i.qty_on_hand <= i.prediction.rop ? "immediately_low" : "might_be_low") : null;
+      const trigger = getInventoryTrigger(i);
       return trigger === filters.trigger;
     });
   }
@@ -647,12 +663,12 @@ export async function deleteSupplier(id: number): Promise<void> {
 export async function getSupplierDraft(negotiationId: number): Promise<SupplierContactDraft> {
   if (IS_DEMO) {
     await delay(800);
+    const message = "Hi Chattarpur Agro Suppliers, we need to reorder stock for our store. Please advise availability and lead time.";
     return {
       has_supplier: true,
-      message:
-        "Dear Karnataka Grains Wholesale,\n\nWe urgently require 30 kg of Toor Dal for Store 3 (Whitefield). Our current stock has fallen below the reorder threshold with predicted demand of 28 kg in the next 3 days.\n\nPlease confirm availability and earliest delivery.\n\nRegards,\nStore 3 Manager",
+      message,
       channel: "whatsapp",
-      link: "https://wa.me/919876543210?text=",
+      link: `https://wa.me/919876543210?text=${encodeURIComponent(message)}`,
     };
   }
   return get<SupplierContactDraft>(`/supplier-contact/${negotiationId}`);

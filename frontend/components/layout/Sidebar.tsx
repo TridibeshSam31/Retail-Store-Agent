@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { useAppStore } from "@/lib/store";
+import { getStores } from "@/lib/api/client";
 
 interface NavItem {
   href: string;
@@ -98,6 +101,16 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
+
+  const { data: stores } = useQuery({
+    queryKey: ["storesSidebar", activeOrgId],
+    queryFn: () => getStores(activeOrgId),
+  });
+
+  const activeStore = stores?.find((s) => s.store_id === activeStoreId);
+  const locationName = activeStore?.location_name ?? `Store #${activeStoreId}`;
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -113,7 +126,6 @@ export function Sidebar() {
         </div>
         <div className="leading-tight">
           <p className="text-[12px] font-800 uppercase tracking-wider text-white">WareAgent</p>
-          <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">SaaS Console</p>
         </div>
       </div>
 
@@ -157,12 +169,12 @@ export function Sidebar() {
       {/* Footer User Info */}
       <div className="p-4 border-t border-zinc-900">
         <div className="flex items-center gap-3 p-2 rounded bg-zinc-900/30 border border-zinc-900/65">
-          <div className="size-7 rounded bg-zinc-800 flex items-center justify-center text-white text-xs font-800">
-            AM
+          <div className="size-7 rounded bg-zinc-800 flex items-center justify-center text-white text-xs font-800 shrink-0">
+            SM
           </div>
           <div className="flex-1 min-w-0 leading-tight">
-            <p className="text-xs font-700 text-white truncate">Arjun Mehta</p>
-            <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider truncate">Store 1 Manager</p>
+            <p className="text-xs font-700 text-white truncate">Store Manager</p>
+            <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider truncate">{locationName}</p>
           </div>
         </div>
       </div>
