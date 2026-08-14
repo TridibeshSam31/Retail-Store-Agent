@@ -19,10 +19,16 @@ import type {
 } from "@/types";
 
 export const DEMO_STORES: Store[] = [
+  // Org 1: RetailCo India Co-op
   { store_id: 1, org_id: 1, location_name: "Store 1 — Koramangala" },
   { store_id: 2, org_id: 1, location_name: "Store 2 — Indiranagar" },
   { store_id: 3, org_id: 1, location_name: "Store 3 — Whitefield" },
   { store_id: 4, org_id: 1, location_name: "Store 4 — HSR Layout" },
+  // Org 2: Delhi Fresh Mart Co-op
+  { store_id: 5, org_id: 2, location_name: "Store 5 — Connaught Place Central" },
+  { store_id: 6, org_id: 2, location_name: "Store 6 — Rohini Sector 7" },
+  { store_id: 7, org_id: 2, location_name: "Store 7 — Dwarka Sector 21" },
+  { store_id: 8, org_id: 2, location_name: "Store 8 — Lajpat Nagar" },
 ];
 
 export const DEMO_ITEMS: Item[] = [
@@ -34,6 +40,15 @@ export const DEMO_ITEMS: Item[] = [
   { item_id: 6, item_name: "Salt", category: "Condiments", unit: "kg" },
   { item_id: 7, item_name: "Milk (1L)", category: "Dairy", unit: "pcs" },
   { item_id: 8, item_name: "Bread", category: "Bakery", unit: "pcs" },
+  { item_id: 9, item_name: "Watermelon", category: "Produce", unit: "kg" },
+  { item_id: 10, item_name: "Full Cream Milk", category: "Dairy", unit: "liter" },
+  { item_id: 11, item_name: "Paneer", category: "Dairy", unit: "kg" },
+  { item_id: 12, item_name: "Curd", category: "Dairy", unit: "kg" },
+  { item_id: 13, item_name: "Ice Cream", category: "Frozen", unit: "liter" },
+  { item_id: 14, item_name: "Butter", category: "Dairy", unit: "kg" },
+  { item_id: 15, item_name: "Tomato", category: "Produce", unit: "kg" },
+  { item_id: 16, item_name: "Onion", category: "Produce", unit: "kg" },
+  { item_id: 17, item_name: "Potato", category: "Produce", unit: "kg" },
 ];
 
 export const DEMO_PREDICTIONS: DailyPrediction[] = [
@@ -73,9 +88,37 @@ export const DEMO_PREDICTIONS: DailyPrediction[] = [
     eoq: 48,
     created_at: new Date().toISOString(),
   },
+  {
+    prediction_date: new Date().toISOString().slice(0, 10),
+    store_id: 6,
+    item_id: 9,
+    predicted_demand: 28,
+    rop: 33,
+    eoq: 90,
+    created_at: new Date().toISOString(),
+  },
+  {
+    prediction_date: new Date().toISOString().slice(0, 10),
+    store_id: 6,
+    item_id: 11,
+    predicted_demand: 30,
+    rop: 25,
+    eoq: 50,
+    created_at: new Date().toISOString(),
+  },
+  {
+    prediction_date: new Date().toISOString().slice(0, 10),
+    store_id: 7,
+    item_id: 15,
+    predicted_demand: 40,
+    rop: 35,
+    eoq: 100,
+    created_at: new Date().toISOString(),
+  },
 ];
 
 export const DEMO_INVENTORY: CurrentInventory[] = [
+  // Org 1 Stores
   {
     store_id: 1,
     item_id: 1,
@@ -128,6 +171,111 @@ export const DEMO_INVENTORY: CurrentInventory[] = [
     store: DEMO_STORES[3],
     item: DEMO_ITEMS[6],
     prediction: DEMO_PREDICTIONS[3],
+  },
+  // Org 2 Stores (Connaught Place Central, Rohini Sector 7, Dwarka Sector 21, Lajpat Nagar)
+  {
+    store_id: 5,
+    item_id: 9,
+    qty_on_hand: 380,
+    store: DEMO_STORES[4],
+    item: DEMO_ITEMS[8],
+    prediction: DEMO_PREDICTIONS[4],
+  },
+  {
+    store_id: 5,
+    item_id: 10,
+    qty_on_hand: 150,
+    store: DEMO_STORES[4],
+    item: DEMO_ITEMS[9],
+  },
+  {
+    store_id: 6,
+    item_id: 9,
+    qty_on_hand: 462,
+    usable_surplus: 372,
+    time_to_stockout: 16.5,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[8],
+    prediction: DEMO_PREDICTIONS[4],
+  },
+  {
+    store_id: 6,
+    item_id: 10,
+    qty_on_hand: 97,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[9],
+  },
+  {
+    store_id: 6,
+    item_id: 11,
+    qty_on_hand: 17,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[10],
+    prediction: DEMO_PREDICTIONS[5],
+  },
+  {
+    store_id: 6,
+    item_id: 12,
+    qty_on_hand: 62,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[11],
+  },
+  {
+    store_id: 6,
+    item_id: 13,
+    qty_on_hand: 140,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[12],
+  },
+  {
+    store_id: 6,
+    item_id: 14,
+    qty_on_hand: 39,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[13],
+  },
+  {
+    store_id: 6,
+    item_id: 15,
+    qty_on_hand: 145,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[14],
+  },
+  {
+    store_id: 6,
+    item_id: 16,
+    qty_on_hand: 78,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[15],
+  },
+  {
+    store_id: 6,
+    item_id: 17,
+    qty_on_hand: 115,
+    store: DEMO_STORES[5],
+    item: DEMO_ITEMS[16],
+  },
+  {
+    store_id: 7,
+    item_id: 15,
+    qty_on_hand: 20,
+    store: DEMO_STORES[6],
+    item: DEMO_ITEMS[14],
+    prediction: DEMO_PREDICTIONS[6],
+  },
+  {
+    store_id: 7,
+    item_id: 16,
+    qty_on_hand: 210,
+    store: DEMO_STORES[6],
+    item: DEMO_ITEMS[15],
+  },
+  {
+    store_id: 8,
+    item_id: 11,
+    qty_on_hand: 95,
+    store: DEMO_STORES[7],
+    item: DEMO_ITEMS[10],
   },
 ];
 

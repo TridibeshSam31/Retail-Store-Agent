@@ -37,18 +37,17 @@ export function Topbar({ className }: TopbarProps) {
   const queryClient = useQueryClient();
   const title = getPageTitle(pathname);
   const setSession = useAppStore((state) => state.setSession);
+  const setActiveContext = useAppStore((state) => state.setActiveContext);
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
 
-  const [currentOrgId, setCurrentOrgId] = useState<string>("");
-  const [currentStoreId, setCurrentStoreId] = useState<string>("");
+  const [currentOrgId, setCurrentOrgId] = useState<string>(String(activeOrgId || "1"));
+  const [currentStoreId, setCurrentStoreId] = useState<string>(String(activeStoreId || "1"));
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const org = localStorage.getItem("org_id") || "1";
-      const store = localStorage.getItem("store_id") || "1";
-      setCurrentOrgId(org);
-      setCurrentStoreId(store);
-    }
-  }, []);
+    setCurrentOrgId(String(activeOrgId));
+    setCurrentStoreId(String(activeStoreId));
+  }, [activeOrgId, activeStoreId]);
 
   // Fetch orgs for selector
   const { data: orgs } = useQuery({
@@ -64,9 +63,31 @@ export function Topbar({ className }: TopbarProps) {
   });
 
   const handleOrgChange = async (newOrgId: string) => {
+    if (!newOrgId) return;
     setCurrentOrgId(newOrgId);
-    setCurrentStoreId("");
-    localStorage.setItem("org_id", newOrgId);
+    try {
+      // Get available stores for the new organization
+      const orgStores = await getStoresForPicker(Number(newOrgId));
+      const isCurrentStoreValid = orgStores?.some((s) => s.store_id === Number(currentStoreId));
+      const targetStoreId = isCurrentStoreValid
+        ? Number(currentStoreId)
+        : (orgStores?.[0]?.store_id ?? 1);
+
+      setCurrentStoreId(String(targetStoreId));
+      const sessionData = await selectIdentity(Number(newOrgId), Number(targetStoreId));
+
+      localStorage.setItem("org_id", String(sessionData.org_id));
+      localStorage.setItem("store_id", String(sessionData.store_id));
+      localStorage.setItem("location_name", sessionData.location_name);
+
+      setSession(sessionData);
+      setActiveContext(sessionData.org_id, sessionData.store_id);
+
+      await queryClient.invalidateQueries();
+      toast.success(`Organization switched: ${sessionData.location_name}`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message ?? "Could not update organization context.");
+    }
   };
 
   const handleStoreChange = async (newStoreId: string) => {
@@ -77,8 +98,11 @@ export function Topbar({ className }: TopbarProps) {
       localStorage.setItem("org_id", String(sessionData.org_id));
       localStorage.setItem("store_id", String(sessionData.store_id));
       localStorage.setItem("location_name", sessionData.location_name);
+
       setSession(sessionData);
-      queryClient.invalidateQueries();
+      setActiveContext(sessionData.org_id, sessionData.store_id);
+
+      await queryClient.invalidateQueries();
       toast.success(`Context updated: ${sessionData.location_name}`);
     } catch (err: unknown) {
       toast.error((err as Error).message ?? "Could not update store context.");

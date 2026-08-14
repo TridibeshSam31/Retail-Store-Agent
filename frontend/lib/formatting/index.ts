@@ -67,6 +67,22 @@ export function triggerLabel(trigger: InventoryTrigger): string {
   return labels[trigger];
 }
 
+export function getInventoryTrigger(item?: { qty_on_hand: number; prediction?: { rop: number } | null } | null): InventoryTrigger {
+  if (!item || !item.prediction || typeof item.prediction.rop !== "number") {
+    return null;
+  }
+  const rop = item.prediction.rop;
+  const qty = item.qty_on_hand;
+
+  if (qty <= rop) {
+    return "immediately_low";
+  }
+  if (qty <= Math.ceil(rop * 1.5)) {
+    return "might_be_low";
+  }
+  return null;
+}
+
 export function resolutionLabel(type: ResolutionType): string {
   const labels: Record<ResolutionType, string> = {
     transfer: "Transfer",

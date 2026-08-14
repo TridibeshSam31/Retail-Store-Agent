@@ -8,23 +8,24 @@ import {
   getStores,
   getItems,
   deleteInventoryItem,
+  selectIdentity,
 } from "@/lib/api/client";
 import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
-import { formatQuantity, formatDateTime } from "@/lib/formatting";
+import { useAppStore } from "@/lib/store";
+import { formatQuantity, formatDateTime, getInventoryTrigger } from "@/lib/formatting";
 import Link from "next/link";
+import { toast } from "sonner";
 import { UpdateItemModal } from "@/components/inventory/UpdateItemModal";
 import type { CurrentInventory, InventoryTrigger } from "@/types";
 
 export default function InventoryPage() {
-  const [storeFilter, setStoreFilter] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("store_id");
-      if (saved) return saved;
-    }
-    return "1";
-  });
+  const activeOrgId = useAppStore((state) => state.activeOrgId);
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
+  const setActiveContext = useAppStore((state) => state.setActiveContext);
+  const setSession = useAppStore((state) => state.setSession);
 
+  const [storeFilter, setStoreFilter] = useState<string>(String(activeStoreId || "1"));
   const [triggerFilter, setTriggerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [modalMode, setModalMode] = useState<"edit" | "add">("edit");
@@ -33,20 +34,14 @@ export default function InventoryPage() {
 
   const queryClient = useQueryClient();
 
+  // Sync store filter when active store changes in top bar
   useEffect(() => {
-    const checkStore = () => {
-      const current = localStorage.getItem("store_id");
-      if (current && current !== storeFilter) {
-        setStoreFilter(current);
-      }
-    };
-    window.addEventListener("storage", checkStore);
-    return () => window.removeEventListener("storage", checkStore);
-  }, [storeFilter]);
+    setStoreFilter(String(activeStoreId));
+  }, [activeStoreId]);
 
   const { data: stores } = useQuery({
-    queryKey: ["stores"],
-    queryFn: () => getStores(),
+    queryKey: ["stores", activeOrgId],
+    queryFn: () => getStores(activeOrgId),
   });
 
   const { data: items } = useQuery({
@@ -55,14 +50,32 @@ export default function InventoryPage() {
   });
 
   const { data: rawInventory, isLoading, error, refetch } = useQuery({
-    queryKey: ["inventory", storeFilter, triggerFilter, search],
+    queryKey: ["inventory", activeOrgId, activeStoreId, storeFilter, triggerFilter, search],
     queryFn: () =>
       getInventory({
-        store_id: storeFilter !== "all" ? Number(storeFilter) : undefined,
+        store_id: storeFilter !== "all" ? Number(storeFilter) : activeStoreId,
         trigger: triggerFilter !== "all" ? (triggerFilter as InventoryTrigger) : undefined,
         search: search ? search : undefined,
       }),
   });
+
+  const handleStoreFilterChange = async (newVal: string) => {
+    setStoreFilter(newVal);
+    if (newVal !== "all") {
+      const newStoreId = Number(newVal);
+      try {
+        const sessionData = await selectIdentity(activeOrgId, newStoreId);
+        localStorage.setItem("org_id", String(sessionData.org_id));
+        localStorage.setItem("store_id", String(sessionData.store_id));
+        localStorage.setItem("location_name", sessionData.location_name);
+        setSession(sessionData);
+        setActiveContext(sessionData.org_id, sessionData.store_id);
+        await queryClient.invalidateQueries();
+      } catch (err: unknown) {
+        toast.error((err as Error).message ?? "Could not update store context.");
+      }
+    }
+  };
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["inventory"] });
 
@@ -90,25 +103,22 @@ export default function InventoryPage() {
       );
     }
 
-    // 2. Organization Scope Filter (if org_id is present)
-    if (typeof window !== "undefined") {
-      const activeOrgId = localStorage.getItem("org_id");
-      if (activeOrgId && stores && stores.length > 0) {
-        const validStoreIds = new Set(
-          stores.filter((s) => s.org_id === Number(activeOrgId)).map((s) => s.store_id)
-        );
-        if (validStoreIds.size > 0) {
-          list = list.filter((inv) => validStoreIds.has(inv.store_id));
-        }
+    // 2. Organization Scope Filter (using activeOrgId & organization stores)
+    if (activeOrgId && stores && stores.length > 0) {
+      const validStoreIds = new Set(
+        stores.filter((s) => s.org_id === activeOrgId).map((s) => s.store_id)
+      );
+      if (validStoreIds.size > 0) {
+        list = list.filter((inv) => validStoreIds.has(inv.store_id));
       }
     }
 
     return list;
-  }, [rawInventory, storeFilter, stores]);
+  }, [rawInventory, storeFilter, stores, activeOrgId]);
 
   const activeStoreIdNumber = storeFilter !== "all"
     ? Number(storeFilter)
-    : (typeof window !== "undefined" ? Number(localStorage.getItem("store_id") || 1) : 1);
+    : activeStoreId;
 
   const handleOpenAdd = () => {
     setModalMode("add");
@@ -157,12 +167,7 @@ export default function InventoryPage() {
               <label className="text-[11px] font-600 text-zinc-400 uppercase">Store:</label>
               <select
                 value={storeFilter}
-                onChange={(e) => {
-                  setStoreFilter(e.target.value);
-                  if (e.target.value !== "all" && typeof window !== "undefined") {
-                    localStorage.setItem("store_id", e.target.value);
-                  }
-                }}
+                onChange={(e) => handleStoreFilterChange(e.target.value)}
                 className="px-2 py-1.5 text-xs border border-zinc-200 rounded-md bg-white text-zinc-700 focus:outline-none font-600 cursor-pointer"
               >
                 <option value="all">All Stores</option>
@@ -238,7 +243,7 @@ export default function InventoryPage() {
                           {formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}
                         </td>
                         <td className="px-4 py-3.5">
-                          <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
+                          <RiskBadge trigger={getInventoryTrigger(inv)} />
                         </td>
                         <td className="px-4 py-3.5 text-xs text-zinc-400">{formatDateTime(new Date().toISOString())}</td>
                         <td className="px-4 py-3.5 text-right">
