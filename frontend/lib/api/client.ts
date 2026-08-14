@@ -240,7 +240,15 @@ export async function createItem(data: Omit<Item, "item_id">): Promise<Item> {
 }
 
 export async function updateItem(id: number, data: Partial<Item>): Promise<Item> {
-  if (IS_DEMO) { await delay(800); return { ...DEMO_ITEMS.find((i) => i.item_id === id)!, ...data }; }
+  if (IS_DEMO) {
+    await delay(800);
+    const existing = DEMO_ITEMS.find((i) => i.item_id === id);
+    if (existing) {
+      Object.assign(existing, data);
+      return { ...existing };
+    }
+    throw new ApiClientError("Item not found", 404);
+  }
   return put<Item>(`/items/${id}`, data);
 }
 
@@ -340,9 +348,20 @@ export async function getInventoryItem(storeId: number, itemId: number): Promise
 export async function updateInventoryItem(storeId: number, itemId: number, qtyOnHand: number): Promise<CurrentInventory> {
   if (IS_DEMO) {
     await delay(800);
-    const item = DEMO_INVENTORY.find((i) => i.store_id === storeId && i.item_id === itemId)!;
-    item.qty_on_hand = qtyOnHand;
-    return item;
+    let item = DEMO_INVENTORY.find((i) => i.store_id === storeId && i.item_id === itemId);
+    if (!item) {
+      item = {
+        store_id: storeId,
+        item_id: itemId,
+        qty_on_hand: qtyOnHand,
+        updated_at: new Date().toISOString(),
+      };
+      DEMO_INVENTORY.push(item);
+    } else {
+      item.qty_on_hand = qtyOnHand;
+      item.updated_at = new Date().toISOString();
+    }
+    return { ...item };
   }
   return put<CurrentInventory>(`/inventory/${storeId}/${itemId}`, { qty_on_hand: qtyOnHand });
 }

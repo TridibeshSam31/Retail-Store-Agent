@@ -103,10 +103,10 @@ export function Topbar({ className }: TopbarProps) {
       <div className="flex items-center gap-4 min-w-0">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded bg-black text-white flex items-center justify-center font-900 text-xs">
-            D
+            W
           </div>
           <span className="font-900 tracking-tighter text-sm uppercase text-black hidden sm:inline">
-            Dayos
+            WareAgent
           </span>
         </div>
         <span className="h-4 w-px bg-zinc-200 hidden sm:inline" />

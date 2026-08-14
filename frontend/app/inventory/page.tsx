@@ -15,15 +15,15 @@ import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDateTime } from "@/lib/formatting";
 import Link from "next/link";
-import type { InventoryTrigger } from "@/types";
+import { UpdateItemModal } from "@/components/inventory/UpdateItemModal";
+import type { CurrentInventory, InventoryTrigger } from "@/types";
 
 export default function InventoryPage() {
   const [storeFilter, setStoreFilter] = useState<string>("all");
   const [triggerFilter, setTriggerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editQty, setEditQty] = useState<string>("");
+  const [modalItem, setModalItem] = useState<CurrentInventory | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -57,15 +57,6 @@ export default function InventoryPage() {
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ storeId, itemId, qty }: { storeId: number; itemId: number; qty: number }) =>
-      updateInventoryItem(storeId, itemId, qty),
-    onSuccess: () => {
-      invalidate();
-      setEditingKey(null);
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: ({ storeId, itemId }: { storeId: number; itemId: number }) =>
       deleteInventoryItem(storeId, itemId),
@@ -80,17 +71,6 @@ export default function InventoryPage() {
       item_id: Number(form.get("item_id")),
       qty_on_hand: Number(form.get("qty_on_hand")),
     });
-  };
-
-  const startEdit = (storeId: number, itemId: number, currentQty: number) => {
-    setEditingKey(`${storeId}-${itemId}`);
-    setEditQty(String(currentQty));
-  };
-
-  const submitEdit = (storeId: number, itemId: number) => {
-    const qty = Number(editQty);
-    if (Number.isNaN(qty) || qty < 0) return;
-    updateMutation.mutate({ storeId, itemId, qty });
   };
 
   const handleDelete = (storeId: number, itemId: number, itemName?: string) => {
@@ -232,7 +212,6 @@ export default function InventoryPage() {
                 <tbody className="divide-y divide-zinc-100">
                   {inventory?.map((inv) => {
                     const key = `${inv.store_id}-${inv.item_id}`;
-                    const isEditing = editingKey === key;
                     return (
                       <tr key={key} className="hover:bg-zinc-50/50 transition-colors">
                         <td className="px-4 py-3.5">
@@ -245,20 +224,7 @@ export default function InventoryPage() {
                           <StoreBadge storeId={inv.store_id} storeName={inv.store?.location_name.split(" — ")[1]} size="sm" />
                         </td>
                         <td className="px-4 py-3.5 font-700 text-zinc-800">
-                          {isEditing ? (
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min={0}
-                                value={editQty}
-                                onChange={(e) => setEditQty(e.target.value)}
-                                className="w-20 px-2 py-1 text-xs border border-zinc-300 rounded-md"
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")
-                          )}
+                          {formatQuantity(inv.qty_on_hand, inv.item?.unit ?? "units")}
                         </td>
                         <td className="px-4 py-3.5">
                           <RiskBadge trigger={inv.prediction ? (inv.qty_on_hand <= inv.prediction.rop ? "immediately_low" : "might_be_low") : null} />
@@ -266,30 +232,12 @@ export default function InventoryPage() {
                         <td className="px-4 py-3.5 text-xs text-zinc-400">{formatDateTime(new Date().toISOString())}</td>
                         <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {isEditing ? (
-                              <>
-                                <button
-                                  onClick={() => submitEdit(inv.store_id, inv.item_id)}
-                                  disabled={updateMutation.isPending}
-                                  className="text-xs text-emerald-600 font-600 hover:underline"
-                                >
-                                  {updateMutation.isPending ? "Saving..." : "Save"}
-                                </button>
-                                <button
-                                  onClick={() => setEditingKey(null)}
-                                  className="text-xs text-zinc-400 hover:underline"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => startEdit(inv.store_id, inv.item_id, inv.qty_on_hand)}
-                                className="text-xs text-zinc-600 font-600 hover:underline"
-                              >
-                                Update
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setModalItem(inv)}
+                              className="text-xs text-indigo-600 font-600 hover:underline"
+                            >
+                              Update
+                            </button>
                             <Link href={`/inventory/${inv.item_id}`}>
                               <Button size="sm" variant="secondary">
                                 Analyze
@@ -313,6 +261,12 @@ export default function InventoryPage() {
           )}
         </div>
       </div>
+
+      <UpdateItemModal
+        isOpen={!!modalItem}
+        onClose={() => setModalItem(null)}
+        inventoryItem={modalItem}
+      />
     </AppShell>
   );
 }

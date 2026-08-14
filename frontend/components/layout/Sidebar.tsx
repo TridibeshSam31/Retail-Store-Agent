@@ -109,10 +109,10 @@ export function Sidebar() {
       {/* Branding Header */}
       <div className="px-6 py-6 flex items-center gap-3">
         <div className="size-6 rounded bg-white flex items-center justify-center text-black font-900 text-xs">
-          O
+          W
         </div>
         <div className="leading-tight">
-          <p className="text-[12px] font-800 uppercase tracking-wider text-white">Multi-Store AI</p>
+          <p className="text-[12px] font-800 uppercase tracking-wider text-white">WareAgent</p>
           <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">SaaS Console</p>
         </div>
       </div>
