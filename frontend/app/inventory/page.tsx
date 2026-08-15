@@ -32,7 +32,21 @@ export default function InventoryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalItem, setModalItem] = useState<CurrentInventory | null>(null);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries();
+      await refetch();
+      toast.success("Inventory metrics synchronized!");
+    } catch {
+      toast.error("Could not refresh inventory data.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Sync store filter when active store changes in top bar
   useEffect(() => {
@@ -141,7 +155,7 @@ export default function InventoryPage() {
             <p className="text-xs text-zinc-500 mt-0.5">Real-time tracking of current warehouse and storefront stock quantities for the active store context.</p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => refetch()}>
+            <Button size="sm" variant="secondary" onClick={handleRefresh} loading={isRefreshing}>
               Refresh
             </Button>
             <Button size="sm" onClick={handleOpenAdd}>
