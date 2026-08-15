@@ -41,8 +41,9 @@ import {
 
 // ─── Config ──────────────────────────────────────────────────
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
-const IS_DEMO = !(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL);
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+const BASE_URL = rawApiUrl.replace(/\/+$/, "");
+const IS_DEMO = !rawApiUrl;
 
 // ─── Header Injection ─────────────────────────────────────────
 
