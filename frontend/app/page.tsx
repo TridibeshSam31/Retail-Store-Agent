@@ -967,24 +967,24 @@ export default function WareAgentHomepage() {
               <div className="space-y-3">
                 <h5 className="font-900 text-white text-xs">Platform</h5>
                 <ul className="space-y-2">
-                  <li><Link href="/dashboard" className="hover:text-white">Dashboard</Link></li>
-                  <li><Link href="/inventory" className="hover:text-white">Inventory</Link></li>
-                  <li><Link href="/predictions" className="hover:text-white">Predictions</Link></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Dashboard</button></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Inventory</button></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Predictions</button></li>
                 </ul>
               </div>
               <div className="space-y-3">
                 <h5 className="font-900 text-white text-xs">Logistics</h5>
                 <ul className="space-y-2">
-                  <li><Link href="/negotiations" className="hover:text-white">Negotiations</Link></li>
-                  <li><Link href="/transfers" className="hover:text-white">Transfers</Link></li>
-                  <li><Link href="/expiry" className="hover:text-white">Expiry Alerts</Link></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Negotiations</button></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Transfers</button></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Expiry Alerts</button></li>
                 </ul>
               </div>
               <div className="space-y-3">
                 <h5 className="font-900 text-white text-xs">Management</h5>
                 <ul className="space-y-2">
-                  <li><Link href="/suppliers" className="hover:text-white">Suppliers</Link></li>
-                  <li><Link href="/configuration" className="hover:text-white">Configuration</Link></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Suppliers</button></li>
+                  <li><button onClick={scrollToSelector} className="hover:text-white transition-colors cursor-pointer text-left">Configuration</button></li>
                 </ul>
               </div>
             </div>
