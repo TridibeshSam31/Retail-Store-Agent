@@ -157,7 +157,7 @@ export class ApiClientError extends Error {
 
 // ─── Delay helper for demo mode ───────────────────────────────
 
-const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+const delay = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 
 // ─── Identity / Login ─────────────────────────────────────────
 
@@ -662,7 +662,7 @@ export async function deleteSupplier(id: number): Promise<void> {
 
 export async function getSupplierDraft(negotiationId: number): Promise<SupplierContactDraft> {
   if (IS_DEMO) {
-    await delay(800);
+    await delay(50);
     const message = "Hi Chattarpur Agro Suppliers, we need to reorder stock for our store. Please advise availability and lead time.";
     return {
       has_supplier: true,

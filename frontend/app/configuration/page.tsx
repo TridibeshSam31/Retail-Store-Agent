@@ -72,18 +72,18 @@ export default function ConfigurationPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
-                    <label className="block font-700 text-zinc-500 uppercase">Batch Volatility Threshold (%)</label>
+                    <label className="block font-700 text-zinc-500 uppercase">ML Pipeline Batch Size (Batch X)</label>
                     <input
                       type="number"
                       required
-                      min={10}
-                      max={100}
+                      min={1}
+                      max={1000}
                       value={batchThreshold}
                       onChange={(e) => setBatchThreshold(Number(e.target.value))}
                       className="w-full px-3 py-2 border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-800"
                     />
                     <p className="text-[10px] text-zinc-450 leading-relaxed">
-                      Defines the percentage threshold for evaluating rolling stock volatility during forecast shortfall evaluations.
+                      Defines the amount of sales transactions (Batch X) required before executing the ML demand prediction pipeline.
                     </p>
                   </div>
 
@@ -99,7 +99,7 @@ export default function ConfigurationPage() {
                       className="w-full px-3 py-2 border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-800"
                     />
                     <p className="text-[10px] text-zinc-450 leading-relaxed">
-                      The maximum speaker turns allowed before the neutral arbitrator falls back to an Even Split allocation matrix.
+                      The maximum number of interaction rounds allowed between store agents during peer-to-peer surplus negotiations.
                     </p>
                   </div>
                 </div>
