@@ -24,7 +24,7 @@ export default function NegotiationsPage() {
 
   const { data: stores } = useQuery({
     queryKey: ["stores", activeOrgId],
-    queryFn: () => getStores(),
+    queryFn: () => getStores(activeOrgId),
   });
 
   const { data: negotiations, isLoading, error, refetch } = useQuery({
@@ -82,11 +82,13 @@ export default function NegotiationsPage() {
                 className="px-2 py-1.5 text-xs border border-zinc-200 rounded-md bg-white text-zinc-700 focus:outline-none"
               >
                 <option value="all">All Stores</option>
-                {stores?.map((s) => (
-                  <option key={s.store_id} value={s.store_id}>
-                    {s.location_name.split(" — ")[1] ?? s.location_name}
-                  </option>
-                ))}
+                {stores
+                  ?.filter((s) => !activeOrgId || s.org_id === activeOrgId)
+                  .map((s) => (
+                    <option key={s.store_id} value={s.store_id}>
+                      {s.location_name.split(" — ")[1] ?? s.location_name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
