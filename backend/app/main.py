@@ -11,7 +11,7 @@ from app.routers import (
 app = FastAPI(title="Multi-Store Agentic AI - Backend")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.1.6:3000", "*"],
+    allow_origins=["https://retail-store-agent.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, etc.)
     allow_headers=["*"],  # Allows all headers
