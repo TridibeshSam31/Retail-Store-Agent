@@ -72,7 +72,7 @@ function getHeaders(requireOrgId = true, requireStoreId = false): Record<string,
 
 // ─── HTTP helpers ─────────────────────────────────────────────
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 3000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 65000): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -84,9 +84,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   } catch (err: unknown) {
     const errorName = (err as Error)?.name;
     if (errorName === "AbortError") {
-      throw new ApiClientError(`Request timeout connecting to backend at ${BASE_URL}`, 504, "TIMEOUT");
+      throw new ApiClientError(`Free Tier Servers take 30s - 1 min to start, kindly wait`, 504, "TIMEOUT");
     }
-    throw new ApiClientError(`Backend server unavailable at ${BASE_URL}`, 503, "SERVER_UNAVAILABLE");
+    throw new ApiClientError(`Free Tier Servers take 30s - 1 min to start, kindly wait`, 503, "SERVER_UNAVAILABLE");
   } finally {
     clearTimeout(timer);
   }

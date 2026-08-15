@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { getOrgs, getStoresForPicker, selectIdentity } from "@/lib/api/client";
@@ -16,6 +16,7 @@ export default function WareAgentHomepage() {
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
 
   // Carousel scroll reference
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -24,8 +25,21 @@ export default function WareAgentHomepage() {
   const { data: orgs, isLoading: isLoadingOrgs, isError: isErrorOrgs, error: errorOrgs, refetch: refetchOrgs } = useQuery({
     queryKey: ["identityOrgsLanding"],
     queryFn: () => getOrgs(),
-    retry: 1,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoadingOrgs) {
+      interval = setInterval(() => {
+        setLoadingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setLoadingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLoadingOrgs]);
 
   // Fetch stores once organization is selected
   const { data: stores, isLoading: isLoadingStores } = useQuery({
@@ -513,16 +527,37 @@ export default function WareAgentHomepage() {
                 </div>
 
                 {isLoadingOrgs ? (
-                  <div className="h-24 bg-zinc-900 rounded-xl animate-pulse flex items-center justify-center font-mono text-[10px] text-zinc-400">
-                    Connecting to API...
+                  <div className="p-5 bg-amber-950/40 border border-amber-500/50 rounded-xl space-y-2.5 text-xs text-amber-200">
+                    <div className="flex items-center gap-2.5 font-bold text-amber-300 text-sm uppercase tracking-wide">
+                      <svg className="animate-spin size-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      <span>Free Tier Servers take 30s - 1 min to start , kindly wait</span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/90 font-mono leading-relaxed">
+                      Render free tier backend instances sleep on inactivity. Waking up server instance ({loadingSeconds}s elapsed)...
+                    </p>
                   </div>
                 ) : isErrorOrgs ? (
-                  <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl space-y-2 text-xs">
-                    <p className="font-700 text-red-400">Backend Server Error</p>
-                    <p className="text-zinc-300 text-[11px]">{(errorOrgs as Error)?.message ?? "Could not connect to backend server."}</p>
-                    <button type="button" onClick={() => refetchOrgs()} className="px-3 py-1 bg-red-900 text-white rounded text-[10px] font-mono hover:bg-red-800 transition-colors">
-                      Retry Connection
-                    </button>
+                  <div className="p-5 bg-amber-950/40 border border-amber-500/60 rounded-xl space-y-3 text-xs text-amber-200">
+                    <div className="flex items-center gap-2 font-bold text-amber-300 text-sm uppercase tracking-wide">
+                      <span className="text-amber-400 text-base">⚡</span>
+                      <span>Free Tier Servers take 30s - 1 min to start , kindly wait</span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/80 font-mono leading-relaxed">
+                      {(errorOrgs as Error)?.message ?? "Render server is starting up. Please click retry to finish connecting."}
+                    </p>
+                    <div className="pt-2 border-t border-amber-900/60 flex items-center justify-between">
+                      <span className="text-[10px] text-amber-300/70 font-mono">Initializing connection...</span>
+                      <button
+                        type="button"
+                        onClick={() => { setLoadingSeconds(0); refetchOrgs(); }}
+                        className="px-4 py-1.5 bg-amber-400 text-black font-bold rounded-lg text-[11px] font-mono hover:bg-amber-300 transition-colors cursor-pointer shadow-md uppercase tracking-wider"
+                      >
+                        Retry Connection
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <form onSubmit={handleSelectIdentity} className="space-y-4 text-xs">

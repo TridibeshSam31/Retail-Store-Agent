@@ -136,6 +136,28 @@ export function EmptyState({
   );
 }
 
+export function ColdStartNotice({ className, message = "Free Tier Servers take 30s - 1 min to start , kindly wait" }: { className?: string; message?: string }) {
+  return (
+    <div
+      className={cn(
+        "p-4 bg-amber-500/10 border border-amber-500/40 rounded-xl text-center space-y-1.5 shadow-sm animate-fade-in",
+        className,
+      )}
+    >
+      <div className="flex items-center justify-center gap-2 text-amber-600 font-900 text-xs sm:text-sm uppercase tracking-wide">
+        <svg className="animate-spin size-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <span>{message}</span>
+      </div>
+      <p className="text-[10px] text-amber-700/80 font-mono">
+        Render free-tier server instances sleep after inactivity. Automatically waking server...
+      </p>
+    </div>
+  );
+}
+
 interface ErrorStateProps {
   title?: string;
   message?: string;
@@ -144,33 +166,34 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = "DATA RUNTIME ERROR",
-  message = "Operation failed. The retail service could not return database metrics.",
+  title = "SERVER INITIALIZING",
+  message = "Free Tier Servers take 30s - 1 min to start , kindly wait",
   onRetry,
   className,
 }: ErrorStateProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-16 px-6 text-center premium-card border-red-200 bg-red-50/10",
+        "flex flex-col items-center justify-center py-12 px-6 text-center premium-card border-amber-300/60 bg-amber-50/20",
         className,
       )}
     >
-      <div className="size-10 rounded bg-red-50 border border-red-200 flex items-center justify-center text-red-500 mb-4">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
+      <div className="size-10 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-600 mb-3 animate-pulse">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       </div>
-      <p className="text-xs font-900 text-red-700 uppercase tracking-widest">{title}</p>
-      <p className="text-xs text-zinc-500 mt-1.5 max-w-xs">{message}</p>
+      <p className="text-xs font-900 text-amber-800 uppercase tracking-widest">{title}</p>
+      <p className="text-xs sm:text-sm font-700 text-amber-950 mt-1.5 max-w-md">{message}</p>
+      <p className="text-[11px] text-zinc-500 mt-1 max-w-xs font-mono">
+        Render free tier backend instances sleep on inactivity. Click retry to wake the server.
+      </p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-4 px-3.5 py-1.5 text-[11px] font-700 font-mono uppercase tracking-wider rounded border border-zinc-300 bg-white hover:bg-zinc-50 transition-colors cursor-pointer"
+          className="mt-4 px-4 py-2 text-xs font-800 font-mono uppercase tracking-wider rounded-lg border border-amber-400 bg-amber-500 text-black hover:bg-amber-400 transition-colors cursor-pointer shadow-sm"
         >
-          Retry request
+          Retry Connection
         </button>
       )}
     </div>
