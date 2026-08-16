@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
   const criticalShortages = inventory?.filter(item => getInventoryTrigger(item) === "immediately_low") ?? [];
   const predictionWarnings = inventory?.filter(item => getInventoryTrigger(item) === "might_be_low") ?? [];
-  const pendingApprovals = negotiations?.filter(neg => neg.status === "proposed" || neg.status === "approved") ?? [];
+  const pendingApprovals = negotiations?.filter(neg => neg.status === "proposed") ?? [];
   const awaitingConfirms = transfers?.filter(xfer => !xfer.is_complete) ?? [];
   const urgentExpiries = expiry?.filter(exp => exp.days_until_expiry && exp.days_until_expiry <= 7) ?? [];
 
