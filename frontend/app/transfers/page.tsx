@@ -59,7 +59,7 @@ export default function TransfersPage() {
           <div className="space-y-1">
             <p className="text-xs font-700 text-zinc-700 uppercase tracking-wide">Shipment Invariant State Rule</p>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              **Physical Completion Verification:** Stock levels are not modified when a manager approves a transfer. Changes are only committed to store database inventories after all affected stores log confirmations of physical stock dispatch and receipt.
+              Physical Completion Verification: Stock levels are not modified when a manager approves a transfer. Changes are only committed to store database inventories after all affected stores log confirmations of physical stock dispatch and receipt.
             </p>
           </div>
         </div>

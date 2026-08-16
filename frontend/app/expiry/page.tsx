@@ -42,7 +42,7 @@ export default function ExpiryPage() {
           <div className="space-y-1">
             <p className="text-xs font-700 text-zinc-700 uppercase tracking-wide">Surplus Exclusion Rules</p>
             <p className="text-xs text-zinc-500 leading-relaxed">
-              **Safety Buffer:** Near-expiry stock is automatically excluded by sub-agents when calculating usable network transfer surpluses. This protects store partners from absorbing soon-to-expire inventories.
+              Safety Buffer: Near-expiry stock is automatically excluded by sub-agents when calculating usable network transfer surpluses. This protects store partners from absorbing soon-to-expire inventories.
             </p>
           </div>
         </div>

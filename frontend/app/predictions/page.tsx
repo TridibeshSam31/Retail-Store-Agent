@@ -38,7 +38,7 @@ export default function PredictionsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-zinc-650">
             <div className="space-y-2 leading-relaxed">
               <p>
-                Our system predicts the **daily sales demand** (<code className="font-mono bg-zinc-100 text-zinc-800 px-1 rounded">d_hat</code>) using machine learning, then evaluates the **Reorder Point (ROP)**:
+                Our system predicts the daily sales demand (<code className="font-mono bg-zinc-100 text-zinc-800 px-1 rounded">d_hat</code>) using machine learning, then evaluates the Reorder Point (ROP):
               </p>
               <div className="font-mono text-zinc-900 bg-zinc-50 border border-zinc-150 rounded p-2.5 text-center">
                 ROP = (d_hat × Lead Time) + Safety Stock
@@ -49,7 +49,7 @@ export default function PredictionsPage() {
             </div>
             <div className="space-y-2 leading-relaxed">
               <p>
-                When restock triggers occur, order sizes are calculated using the **Economic Order Quantity (EOQ)** formula:
+                When restock triggers occur, order sizes are calculated using the Economic Order Quantity (EOQ) formula:
               </p>
               <div className="font-mono text-zinc-900 bg-zinc-50 border border-zinc-150 rounded p-2.5 text-center">
                 EOQ = √ ( (2 × Annual Demand × Order Cost) / Holding Cost )
@@ -69,7 +69,7 @@ export default function PredictionsPage() {
               <span className="text-xs font-700 text-red-700 uppercase">Immediately Low</span>
             </div>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              **Critical Stock Condition:** The actual current stock is immediately below the reorder point. Immediate agent negotiation or supplier escalation is triggered.
+              Critical Stock Condition: The actual current stock is immediately below the reorder point. Immediate agent negotiation or supplier escalation is triggered.
             </p>
           </div>
           <div className="border border-amber-200 bg-amber-50/30 rounded-lg p-4 space-y-1">
@@ -78,7 +78,7 @@ export default function PredictionsPage() {
               <span className="text-xs font-700 text-amber-700 uppercase">Might Be Low</span>
             </div>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              **Prediction-Driven Warning:** Daily forecast predictions indicate high upcoming demand velocity. Stockout is predicted within the supplier lead time window.
+              Prediction-Driven Warning: Daily forecast predictions indicate high upcoming demand velocity. Stockout is predicted within the supplier lead time window.
             </p>
           </div>
         </div>
