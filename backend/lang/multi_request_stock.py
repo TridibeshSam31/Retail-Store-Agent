@@ -424,3 +424,5 @@ def resume_negotiation(negotiation_id: int, decision: str) -> None:
     negotiation_app.update_state(config, {"manager_decision": decision})
     for _ in negotiation_app.stream(None, config=config, stream_mode="values"):
         pass
+
+

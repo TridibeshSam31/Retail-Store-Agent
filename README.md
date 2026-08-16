@@ -43,7 +43,7 @@ In a retail chain with multiple stores under one owner, stock management today l
 
 **Retail Store Agent** replaces that loop with two systems working together:
 
-1. **A prediction engine** (XGBoost demand forecasting) that watches sales data per item per store and tells you when you're likely to run out and how much to reorder — instead of a manager guessing.
+1. **A prediction engine** (XGBoost demand forecasting) that watches sales data per item per store and tells you when you're likely to run out and how much to reorder — instead of a manager guessing. It predicts both the reorder point and the expected time-to-stockout, so the system knows whether a transfer from another store is even feasible before it starts negotiating.
 2. **A team of LangGraph-orchestrated AI agents** — one per store, plus a neutral arbitrator — that activate automatically the moment a shortage is detected. If another store in the chain has surplus of that item, the agents negotiate (each arguing its own store's case) and arrive at a decision: transfer stock from the surplus store, or escalate to the supplier if no transfer makes sense.
 
 The manager's job shrinks to approving what the agents propose and physically confirming stock movement. Everything else — noticing the problem, deciding what to do, and justifying the decision — is handled by the system.
@@ -54,9 +54,9 @@ The manager's job shrinks to approving what the agents propose and physically co
 
 ## Features
 
-- **Two-tier shortage detection** — a cheap real-time check flags a sudden, unexpected drop ("immediately low") independent of the ML forecast, while a batch pipeline re-forecasts every *X* transactions and flags a slower, expected shortage ("might be low").
+- **Two-tier shortage detection** — a real-time check flags a sudden, unexpected drop ("immediately low") independent of the ML forecast, while a batch pipeline re-forecasts every *X* transactions and flags a slower, expected shortage ("might be low").
 - **Autonomous multi-agent negotiation** — a LangGraph state machine spins up an initiator agent (the deficit store) and responder agents (candidate surplus stores, nearest-first) that argue their case turn-by-turn over a capped number of rounds.
-- **Neutral arbitrator with a deterministic fallback** — if agents can't reach agreement within the turn limit, the arbitrator falls back to a strict even split of available surplus rather than stalling.
+- **Neutral arbitrator with a deterministic fallback** — if agents can't reach agreement within the turn limit, the arbitrator falls back to a strict even split of available surplus rather than stalling. Or if the arbitrator is satisfied with a partial fill, it books that and leaves the remainder unfulfilled.  
 - **Automatic supplier escalation** — when no store in the org has usable surplus, or the estimated transfer time is slower than time-to-stockout, the system skips negotiation entirely and drafts a supplier order.
 - **Human-in-the-loop checkpoints** — exactly four moments require a manager's tap: approve/reject a proposal, renegotiate or contact-supplier after a rejection, mark a transfer physically done (N-of-N confirmation per transfer), and send a supplier draft (WhatsApp/email deep link — no live send API).
 - **Org-wide transparency** — every negotiation, including rejected, failed, or aborted ones, is logged turn-by-turn to Postgres and visible to every store in the org via a live activity feed.
@@ -73,7 +73,7 @@ The manager's job shrinks to approving what the agents propose and physically co
 | **Backend API** | FastAPI, SQLAlchemy 2.0, Pydantic v2 |
 | **Database** | PostgreSQL |
 | **Agent orchestration** | LangGraph (state machine + checkpointing), LangChain, Google Gemini (`gemini-3.5-flash-lite` via `langchain-google-genai`) |
-| **Demand forecasting** | XGBoost regressor, scikit-learn (`TimeSeriesSplit` + `GridSearchCV`), pandas, NumPy, joblib |
+| **Demand forecasting** | XGBoost regressor, scikit-learn (`TimeSeriesSplit` + `GridSearchCV`)|
 | **Deployment target** | Render (backend, single service — API + agents + ML run in-process), Vercel (frontend) |
 
 The negotiation engine and the FastAPI app share one process and one database session boundary by design: the ML pipeline's `service.py` and the LangGraph graph in `lang/` both import directly from `app/`, so a prediction, a triggered negotiation, and the sale that caused it commit as part of the same flow — there's no second service or queue in between.
@@ -88,23 +88,56 @@ Every stock write (a sale or manual adjustment) runs a cheap inline check: if `q
 ### 2. Negotiation kickoff
 Once a `Negotiation` row is committed, the router calls into `lang/bridge.py`, which starts the LangGraph graph for that negotiation. Every LLM turn and the final resolution are written straight to Postgres — nothing but routing state lives only in LangGraph's in-memory checkpoint.
 
-### 3. The negotiation state machine
+### 3. Agentic Workflow
 
 ```mermaid
+%%{init: {"flowchart": {"defaultRenderer": "elk", "curve": "step"}}}%%
 flowchart TD
-    START([Shortage detected]) --> DS[detect_shortage]
-    DS -->|no store has surplus| ESC[escalate_to_supplier]
-    DS -->|candidate stores found| IA[initiator_agent]
-    IA --> RA[responder_agent]
-    RA -->|store agrees, or max turns hit| PAT[process_agreement_or_transition]
-    RA -->|still arguing, turns remain| IA
-    PAT -->|need remains, more candidates left| IA
-    PAT -->|fully / partially satisfied| ARB[arbitrator_agent]
-    ARB --> HA{{human_approval}}
-    HA -->|approved| DONE([Transfer created])
-    HA -->|renegotiate| IA
-    HA -->|escalate| ESC
-    ESC --> END1([END])
+    %% Define color classes
+    classDef greenFill fill:#eafaf1,stroke:#2ecc71,stroke-width:2px,color:#000;
+    classDef yellowFill fill:#fcf3cf,stroke:#f1c40f,stroke-width:2px,color:#000;
+    classDef blueFill fill:#e8f4f8,stroke:#4a90e2,stroke-width:2px,color:#000;
+    classDef redFill fill:#fadbd8,stroke:#e74c3c,stroke-width:2px,color:#000;
+    classDef purpleFill fill:#ebdef0,stroke:#9b59b6,stroke-width:2px,color:#000;
+    classDef greenOutline fill:#fff,stroke:#2ecc71,stroke-width:2px,color:#000;
+    classDef orangeOutline fill:#fff,stroke:#f39c12,stroke-width:2px,color:#000;
+
+    %% Initial Nodes
+    START([<b>Shortage detected</b>]) --> DS["<b>detect_shortage</b>"]:::greenFill
+
+    %% Subgraph for the Agent Core
+    subgraph Core["LANGGRAPH AGENT CORE"]
+        IA["<b>initiator_agent</b>"]:::yellowFill
+        RA["<b>responder_agent</b>"]:::yellowFill
+        PAT["<b>process_agreement_or_transition</b>"]:::blueFill
+        ARB["<b>arbitrator_agent</b>"]:::redFill
+
+        IA --> RA
+        RA -->|"store agrees, or max turns hit"| PAT
+        
+        %% Standard arrows now route cleanly with elk
+        RA -->|"still arguing, turns remain"| IA
+        PAT -->|"need remains, more candidates left"| IA
+        
+        PAT -->|"fully / partially satisfied"| ARB
+    end
+    %% Styling the subgraph border
+    style Core fill:none,stroke:#9b59b6,stroke-width:2px,stroke-dasharray: 5 5,color:#9b59b6
+
+    %% Connections into and out of the Core
+    DS -->|"candidate stores found"| IA
+    DS -->|"no store has surplus"| ESC["<b>escalate_to_supplier</b>"]:::orangeOutline
+
+    HA{{"<b>human_approval</b>"}}:::purpleFill
+    ARB --> HA
+
+    DONE([<b>Transfer created</b>]):::greenOutline
+    
+    HA -->|"approved"| DONE
+    HA -->|"escalate"| ESC
+    HA -->|"renegotiate"| IA
+    
+    ESC --> END1([<b>END</b>])
 ```
 
 - **`detect_shortage`** pulls the deficit store's current stock and EOQ, then ranks every other store in the org by distance and usable surplus (surplus above what *that* store's own forecast needs, minus near-expiry stock).
