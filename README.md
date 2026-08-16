@@ -1,4 +1,9 @@
-# Retail Store Agent — Multi-Store Agentic AI for Inventory Rebalancing
+<h3 align="center">
+  <b><big><big>Ware Agent</big></big></b>
+</h3>
+<p align="center">
+  <em>Multi-Agent AI for Forecasting, Rebalancing, and Negotiating Inventory</em>
+</p>
 
 A multi-agent system that replaces manual, gut-feel stock reordering across a retail chain with a team of negotiating AI agents and ML demand forecaster — one per store, plus a neutral arbitrator — that detect shortages, find surplus elsewhere in the chain, and propose a resolution automatically.
 
