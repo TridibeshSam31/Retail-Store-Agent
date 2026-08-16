@@ -74,10 +74,10 @@ export function getInventoryTrigger(item?: { qty_on_hand: number; prediction?: {
   const rop = item.prediction.rop;
   const qty = item.qty_on_hand;
 
-  if (qty <= rop) {
+  if (qty <=  Math.ceil(rop * 0.2)) {
     return "immediately_low";
   }
-  if (qty <= Math.ceil(rop * 1.5)) {
+  if (qty <= rop) {
     return "might_be_low";
   }
   return null;
