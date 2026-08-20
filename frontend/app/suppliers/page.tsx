@@ -26,10 +26,9 @@ export default function SuppliersPage() {
 
   const validatePhone = (val: string): boolean => {
     if (!val.trim()) return true; // phone is optional in schema
-    // Validates Indian phone numbers (e.g. +91 9876543210, 9876543210, 09876543210) or standard 10-15 digit phone
-    const phoneRegex = /^(?:\+91|91|0)?[6-9]\d{9}$/;
-    const intlPhoneRegex = /^\+?[0-9]{10,15}$/;
-    return phoneRegex.test(val.replace(/[\s-]/g, "")) || intlPhoneRegex.test(val.replace(/[\s-]/g, ""));
+    // Exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(val.trim());
   };
 
   const validateEmail = (val: string): boolean => {
@@ -48,7 +47,7 @@ export default function SuppliersPage() {
     mutationFn: async () => {
       const errors: { phone?: string; email?: string } = {};
       if (phone.trim() && !validatePhone(phone)) {
-        errors.phone = "Please enter a valid phone number (e.g. +91-9876543210).";
+        errors.phone = "Phone number must be exactly 10 digits (e.g. 9876543210).";
       }
       if (email.trim() && !validateEmail(email)) {
         errors.email = "Please enter a valid email address (e.g. name@supplier.com).";
@@ -165,20 +164,26 @@ export default function SuppliersPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block font-700 text-zinc-500 uppercase">Phone Number</label>
+                <label className="block font-700 text-zinc-500 uppercase">Phone Number (10 Digits)</label>
                 <input
-                  type="text"
-                  placeholder="+91-XXXXXXXXXX"
+                  type="tel"
+                  maxLength={10}
+                  placeholder="9876543210"
                   value={phone}
                   onChange={(e) => {
-                    setPhone(e.target.value);
+                    const onlyDigits = e.target.value.replace(/\D/g, "");
+                    setPhone(onlyDigits);
                     if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
                   }}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 bg-zinc-50 text-zinc-800 ${
                     formErrors.phone ? "border-red-400 focus:ring-red-400 bg-red-50/20" : "border-zinc-200 focus:ring-zinc-400"
                   }`}
                 />
-                {formErrors.phone && <p className="text-[10px] text-red-600 font-500">{formErrors.phone}</p>}
+                {formErrors.phone ? (
+                  <p className="text-[10px] text-red-600 font-500">{formErrors.phone}</p>
+                ) : (
+                  <p className="text-[10px] text-zinc-400">Must be a 10-digit number</p>
+                )}
               </div>
 
               <div className="space-y-1">
