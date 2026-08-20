@@ -20,6 +20,9 @@ from typing import TypedDict, List, Optional
 from urllib.parse import quote
 from dotenv import load_dotenv
 load_dotenv()
+from psycopg_pool import ConnectionPool
+from langgraph.checkpoint.postgres import PostgresSaver
+import os
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(BACKEND_ROOT) not in sys.path:
@@ -93,7 +96,7 @@ def _persist_turn(negotiation_id: int, store_id: int, turn_number: int, text_con
 # NODES
 # ==========================================
 def detect_shortage(state: AgentState):
-    negotiation_id = state["negotiation_id"]
+    negotiation_id = state["negotiation_id"]    
     db = SessionLocal()
     try:
         neg = db.get(Negotiation, negotiation_id)
@@ -384,6 +387,21 @@ graph.add_conditional_edges("process_agreement_or_transition", route_after_proce
 graph.add_edge("arbitrator_agent", "human_approval")
 graph.add_conditional_edges("human_approval", route_after_human)
 graph.add_edge("escalate_to_supplier", END)
+
+pg_uri = os.getenv("DB_URL").replace("+psycopg2", "")
+
+# 2. Initialize a connection pool for LangGraph
+connection_pool = ConnectionPool(
+    conninfo=pg_uri,
+    max_size=20,
+    kwargs={"autocommit": True}
+)
+
+# 3. Create the PostgresSaver using the pool
+memory = PostgresSaver(connection_pool)
+
+# 4. Auto-create LangGraph's internal checkpoint tables if they don't exist yet
+memory.setup()
 
 memory = MemorySaver()
 negotiation_app = graph.compile(checkpointer=memory, interrupt_before=["human_approval"])
