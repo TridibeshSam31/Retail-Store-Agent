@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createItem, updateItem, updateInventoryItem, createItemBatch } from "@/lib/api/client";
+import {
+  createItem,
+  updateItem,
+  updateInventoryItem,
+  createInventoryItem,
+  createItemBatch,
+} from "@/lib/api/client";
 import { Button } from "@/components/ui/primitives";
 import { toast } from "sonner";
 import type { CurrentInventory } from "@/types";
@@ -27,6 +33,7 @@ export function UpdateItemModal({
   const isAddMode = mode === "add";
   const [itemName, setItemName] = useState("");
   const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [unit, setUnit] = useState("");
   const [qtyOnHand, setQtyOnHand] = useState<number | string>(0);
   const [expiryDate, setExpiryDate] = useState("");
@@ -43,12 +50,15 @@ export function UpdateItemModal({
       if (isAddMode) {
         setItemName("");
         setCategory("");
+        setCustomCategory("");
         setUnit("units");
         setQtyOnHand(0);
         setExpiryDate("");
       } else if (inventoryItem) {
         setItemName(inventoryItem.item?.item_name ?? "");
-        setCategory(inventoryItem.item?.category ?? "");
+        const currentCat = inventoryItem.item?.category ?? "";
+        setCategory(currentCat);
+        setCustomCategory("");
         setUnit(inventoryItem.item?.unit ?? "units");
         setQtyOnHand(inventoryItem.qty_on_hand ?? 0);
       }
@@ -68,7 +78,9 @@ export function UpdateItemModal({
       return;
     }
 
-    if (!itemName.trim() || !category.trim()) {
+    const effectiveCategory = category === "Other" ? customCategory.trim() : category.trim();
+
+    if (!itemName.trim() || !effectiveCategory) {
       setErrorMsg("Item Name and Category are required.");
       return;
     }
@@ -80,12 +92,20 @@ export function UpdateItemModal({
         // 1. Create item catalog entry
         const newItem = await createItem({
           item_name: itemName.trim(),
-          category: category.trim(),
+          category: effectiveCategory,
           unit: unit.trim() || "units",
         });
 
-        // 2. Set initial inventory stock quantity for target store
-        await updateInventoryItem(effectiveStoreId, newItem.item_id, parsedQty);
+        // 2. Set initial inventory stock quantity for target store (or update if already existing)
+        try {
+          await createInventoryItem({
+            store_id: effectiveStoreId,
+            item_id: newItem.item_id,
+            qty_on_hand: parsedQty,
+          });
+        } catch {
+          await updateInventoryItem(effectiveStoreId, newItem.item_id, parsedQty);
+        }
 
         // 3. If expiry date provided, create an item batch
         if (expiryDate) {
@@ -105,13 +125,13 @@ export function UpdateItemModal({
         // 1. Update item attributes if modified
         const itemChanged =
           itemName !== inventoryItem.item?.item_name ||
-          category !== inventoryItem.item?.category ||
+          effectiveCategory !== inventoryItem.item?.category ||
           unit !== inventoryItem.item?.unit;
 
         if (itemChanged && itemId) {
           await updateItem(itemId, {
             item_name: itemName.trim(),
-            category: category.trim(),
+            category: effectiveCategory,
             unit: unit.trim() || "units",
           });
         }
@@ -214,8 +234,18 @@ export function UpdateItemModal({
                 <option value="Frozen">Frozen</option>
                 <option value="Beverages">Beverages</option>
                 <option value="Snacks">Snacks</option>
-                <option value="Other">Other</option>
+                <option value="Other">Other (Custom)</option>
               </select>
+              {category === "Other" && (
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter category name…"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="w-full mt-1.5 px-3 py-1.5 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">

@@ -7,7 +7,7 @@ from app.core.db import Base
 class Item(Base):
     __tablename__ = "items"
 
-    item_id = Column(Integer, primary_key=True)
+    item_id = Column(Integer, primary_key=True, autoincrement=True)
     item_name = Column(String(150), nullable=False)
     category = Column(String(50), nullable=False)
     unit = Column(String(20), nullable=False)
@@ -35,7 +35,7 @@ class CurrentInventory(Base):
 class ItemBatch(Base):
     __tablename__ = "item_batches"
 
-    batch_id = Column(Integer, primary_key=True)
+    batch_id = Column(Integer, primary_key=True, autoincrement=True)
     store_id = Column(Integer, ForeignKey("stores.store_id"))
     item_id = Column(Integer, ForeignKey("items.item_id"))
     qty = Column(Integer, nullable=False)

@@ -16,9 +16,9 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db),
     db.add(item)
     try:
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Could not create item")
+        raise HTTPException(status_code=400, detail=f"Could not create item: {str(e)}")
     db.refresh(item)
     return item
 
