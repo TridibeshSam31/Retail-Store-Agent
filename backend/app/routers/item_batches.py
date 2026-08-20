@@ -29,13 +29,20 @@ def create_batch(payload: ItemBatchCreate, db: Session = Depends(get_db),
 
 @router.get("", response_model=list[ItemBatchOut])
 def list_batches(db: Session = Depends(get_db), org_id: int = Depends(get_current_org_id)):
-    return db.query(ItemBatch).all()
+    from app.models.org_store import Store
+    org_store_ids = [s.store_id for s in db.query(Store).filter(Store.org_id == org_id).all()]
+    return db.query(ItemBatch).filter(ItemBatch.store_id.in_(org_store_ids)).all()
 
 
 @router.get("/expiring", response_model=list[ItemBatchOut])
 def list_expiring(db: Session = Depends(get_db), org_id: int = Depends(get_current_org_id)):
+    from app.models.org_store import Store
+    org_store_ids = [s.store_id for s in db.query(Store).filter(Store.org_id == org_id).all()]
     cutoff = date.today() + timedelta(days=NEAR_EXPIRY_DAYS)
-    return db.query(ItemBatch).filter(ItemBatch.expiry_date <= cutoff).all()
+    return db.query(ItemBatch).filter(
+        ItemBatch.store_id.in_(org_store_ids),
+        ItemBatch.expiry_date <= cutoff
+    ).all()
 
 
 @router.get("/expiring/store/{store_id}", response_model=list[ItemBatchOut])

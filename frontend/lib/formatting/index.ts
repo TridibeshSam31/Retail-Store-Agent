@@ -7,11 +7,14 @@ import type {
   TransferPartyStatus,
 } from "@/types";
 
-// ─── Date/Time ────────────────────────────────────────────────
+// ─── Date/Time (Formatted in Indian Standard Time IST - Asia/Kolkata) ────
+
+const IST_TIMEZONE = "Asia/Kolkata";
 
 export function formatDate(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-IN", {
+    timeZone: IST_TIMEZONE,
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -21,6 +24,7 @@ export function formatDate(iso?: string | null): string {
 export function formatTime(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleTimeString("en-IN", {
+    timeZone: IST_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,

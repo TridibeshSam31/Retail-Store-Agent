@@ -16,16 +16,18 @@ def create_supplier(payload: SupplierCreate, db: Session = Depends(get_db),
     db.add(supplier)
     try:
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Could not create supplier")
+        raise HTTPException(status_code=400, detail=f"Could not create supplier: {str(e)}")
     db.refresh(supplier)
     return supplier
 
 
 @router.get("", response_model=list[SupplierOut])
 def list_suppliers(db: Session = Depends(get_db), org_id: int = Depends(get_current_org_id)):
-    return db.query(Supplier).all()
+    from app.models.org_store import Store
+    org_store_ids = [s.store_id for s in db.query(Store).filter(Store.org_id == org_id).all()]
+    return db.query(Supplier).filter(Supplier.store_id.in_(org_store_ids)).all()
 
 
 @router.get("/store/{store_id}", response_model=list[SupplierOut])

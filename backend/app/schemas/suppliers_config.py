@@ -5,24 +5,24 @@ from app.schemas.common import ORMBase
 
 class SupplierCreate(BaseModel):
     store_id: int
-    item_id: int
+    item_id: int | None = None
     name: str
     phone: str | None = None
     email: str | None = None
-    pref: str  # whatsapp | email
+    pref: str = "whatsapp"  # whatsapp | email
 
 
 class SupplierUpdate(BaseModel):
     name: str
     phone: str | None = None
     email: str | None = None
-    pref: str
+    pref: str = "whatsapp"
 
 
 class SupplierOut(ORMBase):
     supplier_id: int
     store_id: int
-    item_id: int
+    item_id: int | None = None
     name: str
     phone: str | None
     email: str | None

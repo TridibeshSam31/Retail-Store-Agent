@@ -21,14 +21,52 @@ export default function SuppliersPage() {
   const [email, setEmail] = useState("");
   const [channel, setChannel] = useState<SupplierChannel>("whatsapp");
 
+  // Form errors
+  const [formErrors, setFormErrors] = useState<{ phone?: string; email?: string }>({});
+
+  const validatePhone = (val: string): boolean => {
+    if (!val.trim()) return true; // phone is optional in schema
+    // Validates Indian phone numbers (e.g. +91 9876543210, 9876543210, 09876543210) or standard 10-15 digit phone
+    const phoneRegex = /^(?:\+91|91|0)?[6-9]\d{9}$/;
+    const intlPhoneRegex = /^\+?[0-9]{10,15}$/;
+    return phoneRegex.test(val.replace(/[\s-]/g, "")) || intlPhoneRegex.test(val.replace(/[\s-]/g, ""));
+  };
+
+  const validateEmail = (val: string): boolean => {
+    if (!val.trim()) return true; // email is optional in schema
+    // Standard RFC-compliant email address regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(val.trim());
+  };
+
   const { data: suppliers, isLoading, error } = useQuery({
     queryKey: ["suppliers", activeStoreId],
     queryFn: () => getSuppliers(activeStoreId ?? undefined),
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => {
-      const payload = { name, phone: phone || undefined, email: email || undefined, pref: channel };
+    mutationFn: async () => {
+      const errors: { phone?: string; email?: string } = {};
+      if (phone.trim() && !validatePhone(phone)) {
+        errors.phone = "Please enter a valid phone number (e.g. +91-9876543210).";
+      }
+      if (email.trim() && !validateEmail(email)) {
+        errors.email = "Please enter a valid email address (e.g. name@supplier.com).";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        throw new Error("Please fix validation errors before saving.");
+      }
+
+      const payload = {
+        store_id: activeStoreId || 1,
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+        pref: channel,
+      };
+
       return editId ? updateSupplier(editId, payload) : createSupplier(payload);
     },
     onSuccess: () => {
@@ -58,6 +96,7 @@ export default function SuppliersPage() {
     setPhone(supplier.phone || "");
     setEmail(supplier.email || "");
     setChannel(supplier.pref);
+    setFormErrors({});
     setIsFormOpen(true);
   };
 
@@ -67,6 +106,7 @@ export default function SuppliersPage() {
     setPhone("");
     setEmail("");
     setChannel("whatsapp");
+    setFormErrors({});
     setIsFormOpen(false);
   };
 
@@ -94,6 +134,7 @@ export default function SuppliersPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                setFormErrors({});
                 saveMutation.mutate();
               }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"
@@ -129,9 +170,15 @@ export default function SuppliersPage() {
                   type="text"
                   placeholder="+91-XXXXXXXXXX"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-800"
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (formErrors.phone) setFormErrors((prev) => ({ ...prev, phone: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 bg-zinc-50 text-zinc-800 ${
+                    formErrors.phone ? "border-red-400 focus:ring-red-400 bg-red-50/20" : "border-zinc-200 focus:ring-zinc-400"
+                  }`}
                 />
+                {formErrors.phone && <p className="text-[10px] text-red-600 font-500">{formErrors.phone}</p>}
               </div>
 
               <div className="space-y-1">
@@ -140,9 +187,15 @@ export default function SuppliersPage() {
                   type="email"
                   placeholder="orders@supplier.in"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-800"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 bg-zinc-50 text-zinc-800 ${
+                    formErrors.email ? "border-red-400 focus:ring-red-400 bg-red-50/20" : "border-zinc-200 focus:ring-zinc-400"
+                  }`}
                 />
+                {formErrors.email && <p className="text-[10px] text-red-600 font-500">{formErrors.email}</p>}
               </div>
 
               <div className="col-span-1 md:col-span-2 flex gap-3 pt-2">

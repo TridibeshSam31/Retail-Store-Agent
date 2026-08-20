@@ -27,7 +27,11 @@ def create_transfer(payload: TransferCreate, db: Session = Depends(get_db),
 
 @router.get("", response_model=list[TransferOut])
 def list_transfers(db: Session = Depends(get_db), org_id: int = Depends(get_current_org_id)):
-    return db.query(Transfer).order_by(Transfer.transfer_id.desc()).all()
+    from app.models.org_store import Store
+    org_store_ids = [s.store_id for s in db.query(Store).filter(Store.org_id == org_id).all()]
+    return db.query(Transfer).filter(
+        (Transfer.from_store_id.in_(org_store_ids)) | (Transfer.to_store_id.in_(org_store_ids))
+    ).order_by(Transfer.transfer_id.desc()).all()
 
 
 @router.get("/store/{store_id}", response_model=list[TransferOut])

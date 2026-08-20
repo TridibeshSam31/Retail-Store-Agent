@@ -636,7 +636,12 @@ export async function confirmTransferShipment(transferId: number): Promise<Trans
 // ─── Suppliers & Contact Drafts ────────────────────────────────
 
 export async function getSuppliers(storeId?: number): Promise<Supplier[]> {
-  if (IS_DEMO) { await delay(); return DEMO_SUPPLIERS; }
+  if (IS_DEMO) {
+    await delay();
+    return storeId
+      ? DEMO_SUPPLIERS.filter((s) => s.store_id === storeId)
+      : DEMO_SUPPLIERS;
+  }
   if (storeId) {
     return get<Supplier[]>(`/suppliers/store/${storeId}`);
   }
@@ -644,14 +649,27 @@ export async function getSuppliers(storeId?: number): Promise<Supplier[]> {
 }
 
 export async function createSupplier(data: Omit<Supplier, "supplier_id">): Promise<Supplier> {
-  if (IS_DEMO) { await delay(800); return { supplier_id: 99, ...data }; }
+  if (IS_DEMO) {
+    await delay(800);
+    const newSup: Supplier = {
+      supplier_id: Math.max(...DEMO_SUPPLIERS.map((s) => s.supplier_id), 0) + 1,
+      ...data,
+    };
+    DEMO_SUPPLIERS.push(newSup);
+    return newSup;
+  }
   return post<Supplier>("/suppliers", data);
 }
 
 export async function updateSupplier(id: number, data: Partial<Supplier>): Promise<Supplier> {
   if (IS_DEMO) {
     await delay(800);
-    return { ...DEMO_SUPPLIERS.find((s) => s.supplier_id === id)!, ...data };
+    const existing = DEMO_SUPPLIERS.find((s) => s.supplier_id === id);
+    if (existing) {
+      Object.assign(existing, data);
+      return { ...existing };
+    }
+    throw new ApiClientError("Supplier not found", 404);
   }
   return put<Supplier>(`/suppliers/${id}`, data);
 }

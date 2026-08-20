@@ -19,7 +19,7 @@ export default function ExpiryPage() {
 
   const { data: alerts, isLoading, error, refetch } = useQuery({
     queryKey: ["expiryAlerts", activeOrgId, activeStoreId],
-    queryFn: () => getExpiryAlerts(),
+    queryFn: () => getExpiryAlerts(activeStoreId ?? undefined),
   });
 
   return (
