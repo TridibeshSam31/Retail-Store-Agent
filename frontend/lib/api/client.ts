@@ -217,48 +217,46 @@ export async function deleteStore(id: number): Promise<void> {
   return del<void>(`/stores/${id}`, false, false);
 }
 
-// ─── Stores ──────────────────────────────────────────────────
+// ─── Reference Data Caches (60s TTL) ─────────────────────────
 
-export async function getStores(orgId?: number): Promise<Store[]> {
-  if (IS_DEMO) {
-    await delay();
-    if (orgId) {
-      return DEMO_STORES.filter((s) => s.org_id === orgId);
-    }
-    return DEMO_STORES;
-  }
-  const url = orgId ? `/stores?org_id=${orgId}` : "/stores";
-  return get<Store[]>(url);
-}
+let cachedItems: { data: Item[]; timestamp: number } | null = null;
+let cachedStores: { data: Store[]; timestamp: number } | null = null;
+let cachedPredictions: { data: DailyPrediction[]; timestamp: number } | null = null;
 
-export async function getStore(id: number): Promise<Store> {
-  if (IS_DEMO) {
-    await delay();
-    return DEMO_STORES.find((s) => s.store_id === id) ?? DEMO_STORES[0];
-  }
-  return get<Store>(`/stores/${id}`);
-}
-
-// ─── Items ───────────────────────────────────────────────────
+const CACHE_TTL_MS = 60000;
 
 export async function getItems(): Promise<Item[]> {
-  if (IS_DEMO) { await delay(); return DEMO_ITEMS; }
-  return get<Item[]>("/items");
+  if (IS_DEMO) { await delay(10); return DEMO_ITEMS; }
+  const now = Date.now();
+  if (cachedItems && now - cachedItems.timestamp < CACHE_TTL_MS) {
+    return cachedItems.data;
+  }
+  const data = await get<Item[]>("/items");
+  cachedItems = { data, timestamp: now };
+  return data;
 }
 
 export async function getItem(id: number): Promise<Item> {
-  if (IS_DEMO) { await delay(); return DEMO_ITEMS.find((i) => i.item_id === id)!; }
+  if (IS_DEMO) { await delay(10); return DEMO_ITEMS.find((i) => i.item_id === id)!; }
   return get<Item>(`/items/${id}`);
 }
 
 export async function createItem(data: Omit<Item, "item_id">): Promise<Item> {
-  if (IS_DEMO) { await delay(800); return { item_id: 99, ...data }; }
-  return post<Item>("/items", data);
+  if (IS_DEMO) {
+    await delay(10);
+    const newItem: Item = { item_id: Math.max(...DEMO_ITEMS.map((i) => i.item_id), 0) + 1, ...data };
+    DEMO_ITEMS.push(newItem);
+    return newItem;
+  }
+  const res = await post<Item>("/items", data);
+  // Invalidate items cache so new item appears immediately
+  cachedItems = null;
+  return res;
 }
 
 export async function updateItem(id: number, data: Partial<Item>): Promise<Item> {
   if (IS_DEMO) {
-    await delay(800);
+    await delay(10);
     const existing = DEMO_ITEMS.find((i) => i.item_id === id);
     if (existing) {
       Object.assign(existing, data);
@@ -266,12 +264,63 @@ export async function updateItem(id: number, data: Partial<Item>): Promise<Item>
     }
     throw new ApiClientError("Item not found", 404);
   }
-  return put<Item>(`/items/${id}`, data);
+  const res = await put<Item>(`/items/${id}`, data);
+  cachedItems = null;
+  return res;
 }
 
 export async function deleteItem(id: number): Promise<void> {
-  if (IS_DEMO) { await delay(600); return; }
-  return del<void>(`/items/${id}`);
+  if (IS_DEMO) { await delay(10); return; }
+  await del<void>(`/items/${id}`);
+  cachedItems = null;
+}
+
+export async function getStore(id: number): Promise<Store> {
+  if (IS_DEMO) {
+    await delay(10);
+    return DEMO_STORES.find((s) => s.store_id === id) ?? DEMO_STORES[0];
+  }
+  return get<Store>(`/stores/${id}`);
+}
+
+export async function getStores(orgId?: number): Promise<Store[]> {
+  if (IS_DEMO) {
+    await delay(10);
+    if (orgId) {
+      return DEMO_STORES.filter((s) => s.org_id === orgId);
+    }
+    return DEMO_STORES;
+  }
+  const now = Date.now();
+  if (!orgId && cachedStores && now - cachedStores.timestamp < CACHE_TTL_MS) {
+    return cachedStores.data;
+  }
+  const url = orgId ? `/stores?org_id=${orgId}` : "/stores";
+  const data = await get<Store[]>(url);
+  if (!orgId) {
+    cachedStores = { data, timestamp: now };
+  }
+  return data;
+}
+
+export async function getPredictions(storeId?: number): Promise<DailyPrediction[]> {
+  if (IS_DEMO) {
+    await delay(10);
+    return storeId
+      ? DEMO_PREDICTIONS.filter((p) => p.store_id === storeId)
+      : DEMO_PREDICTIONS;
+  }
+  const now = Date.now();
+  if (!storeId && cachedPredictions && now - cachedPredictions.timestamp < CACHE_TTL_MS) {
+    return cachedPredictions.data;
+  }
+  const data = await (storeId
+    ? get<DailyPrediction[]>(`/predictions/store/${storeId}`)
+    : get<DailyPrediction[]>("/predictions"));
+  if (!storeId) {
+    cachedPredictions = { data, timestamp: now };
+  }
+  return data;
 }
 
 // ─── Inventory ────────────────────────────────────────────────
@@ -287,21 +336,19 @@ export async function getInventory(filters?: InventoryFilters): Promise<CurrentI
   let data: CurrentInventory[];
   
   if (IS_DEMO) {
-    await delay();
+    await delay(10);
     data = DEMO_INVENTORY;
   } else {
-    if (filters?.store_id) {
-      data = await get<CurrentInventory[]>(`/inventory/store/${filters.store_id}`);
-    } else {
-      data = await get<CurrentInventory[]>("/inventory");
-    }
-
-    const [items, stores, predictions] = await Promise.all([
+    const [invRows, items, stores, predictions] = await Promise.all([
+      filters?.store_id
+        ? get<CurrentInventory[]>(`/inventory/store/${filters.store_id}`)
+        : get<CurrentInventory[]>("/inventory"),
       getItems().catch(() => []),
       getStores().catch(() => []),
       getPredictions().catch(() => []),
     ]);
 
+    data = invRows;
     const itemMap = new Map(items.map((i) => [i.item_id, i]));
     const storeMap = new Map(stores.map((s) => [s.store_id, s]));
     const predMap = new Map(predictions.map((p) => [`${p.store_id}-${p.item_id}`, p]));
@@ -449,22 +496,9 @@ export async function getTimeToStockout(storeId: number, itemId: number): Promis
 
 // ─── Predictions ──────────────────────────────────────────────
 
-export async function getPredictions(storeId?: number): Promise<DailyPrediction[]> {
-  if (IS_DEMO) {
-    await delay();
-    return storeId
-      ? DEMO_PREDICTIONS.filter((p) => p.store_id === storeId)
-      : DEMO_PREDICTIONS;
-  }
-  if (storeId) {
-    return get<DailyPrediction[]>(`/predictions/store/${storeId}`);
-  }
-  return get<DailyPrediction[]>("/predictions");
-}
-
 export async function getPrediction(storeId: number, itemId: number): Promise<DailyPrediction> {
   if (IS_DEMO) {
-    await delay();
+    await delay(10);
     const p = DEMO_PREDICTIONS.find((pred) => pred.store_id === storeId && pred.item_id === itemId);
     if (!p) throw new ApiClientError("Prediction not found", 404, "NOT_FOUND");
     return p;
@@ -482,20 +516,18 @@ export interface NegotiationFilters {
 export async function getNegotiations(filters?: NegotiationFilters): Promise<Negotiation[]> {
   let data: Negotiation[];
   if (IS_DEMO) {
-    await delay();
+    await delay(10);
     data = DEMO_NEGOTIATIONS;
   } else {
-    if (filters?.store_id) {
-      data = await get<Negotiation[]>(`/negotiations/store/${filters.store_id}`);
-    } else {
-      data = await get<Negotiation[]>("/negotiations");
-    }
-
-    const [items, stores] = await Promise.all([
+    const [negRows, items, stores] = await Promise.all([
+      filters?.store_id
+        ? get<Negotiation[]>(`/negotiations/store/${filters.store_id}`)
+        : get<Negotiation[]>("/negotiations"),
       getItems().catch(() => []),
       getStores().catch(() => []),
     ]);
 
+    data = negRows;
     const itemMap = new Map(items.map((i) => [i.item_id, i]));
     const storeMap = new Map(stores.map((s) => [s.store_id, s]));
 
@@ -584,24 +616,22 @@ export async function cancelNegotiation(negotiationId: number): Promise<void> {
 export async function getTransfers(storeId?: number): Promise<Transfer[]> {
   let data: Transfer[];
   if (IS_DEMO) {
-    await delay();
+    await delay(10);
     data = storeId
       ? DEMO_TRANSFERS.filter(
           (t) => t.from_store_id === storeId || t.to_store_id === storeId,
         )
       : DEMO_TRANSFERS;
   } else {
-    if (storeId) {
-      data = await get<Transfer[]>(`/transfers/store/${storeId}`);
-    } else {
-      data = await get<Transfer[]>("/transfers");
-    }
-
-    const [items, stores] = await Promise.all([
+    const [xferRows, items, stores] = await Promise.all([
+      storeId
+        ? get<Transfer[]>(`/transfers/store/${storeId}`)
+        : get<Transfer[]>("/transfers"),
       getItems().catch(() => []),
       getStores().catch(() => []),
     ]);
 
+    data = xferRows;
     const itemMap = new Map(items.map((i) => [i.item_id, i]));
     const storeMap = new Map(stores.map((s) => [s.store_id, s]));
 
@@ -726,20 +756,16 @@ export async function createItemBatch(data: {
 
 export async function getExpiryAlerts(storeId?: number): Promise<ExpiryAlert[]> {
   if (IS_DEMO) {
-    await delay();
+    await delay(10);
     return storeId
       ? DEMO_EXPIRY.filter((e) => e.store_id === storeId)
       : DEMO_EXPIRY;
   }
 
-  let batches: ExpiryAlert[];
-  if (storeId) {
-    batches = await get<ExpiryAlert[]>(`/item-batches/expiring/store/${storeId}`);
-  } else {
-    batches = await get<ExpiryAlert[]>("/item-batches/expiring");
-  }
-
-  const [items, stores] = await Promise.all([
+  const [batches, items, stores] = await Promise.all([
+    storeId
+      ? get<ExpiryAlert[]>(`/item-batches/expiring/store/${storeId}`)
+      : get<ExpiryAlert[]>("/item-batches/expiring"),
     getItems().catch(() => []),
     getStores().catch(() => []),
   ]);

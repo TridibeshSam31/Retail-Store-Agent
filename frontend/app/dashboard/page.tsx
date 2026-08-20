@@ -20,21 +20,25 @@ export default function DashboardPage() {
   const { data: inventory, isLoading: invLoading, error: invError, refetch: refetchInv } = useQuery({
     queryKey: ["inventory", activeOrgId, activeStoreId],
     queryFn: () => getInventory({ store_id: activeStoreId }),
+    staleTime: 30000,
   });
 
   const { data: negotiations, isLoading: negLoading, error: negError, refetch: refetchNeg } = useQuery({
     queryKey: ["negotiations", activeOrgId, activeStoreId],
     queryFn: () => getNegotiations({ store_id: activeStoreId }),
+    staleTime: 30000,
   });
 
   const { data: transfers, isLoading: xferLoading, error: xferError, refetch: refetchXfer } = useQuery({
     queryKey: ["transfers", activeOrgId, activeStoreId],
     queryFn: () => getTransfers(activeStoreId),
+    staleTime: 30000,
   });
 
   const { data: expiry, isLoading: expLoading, error: expError, refetch: refetchExp } = useQuery({
     queryKey: ["expiry", activeOrgId, activeStoreId],
     queryFn: () => getExpiryAlerts(activeStoreId),
+    staleTime: 30000,
   });
 
   const isAnyLoading = invLoading || negLoading || xferLoading || expLoading;
