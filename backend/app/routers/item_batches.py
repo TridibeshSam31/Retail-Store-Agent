@@ -13,16 +13,35 @@ router = APIRouter(prefix="/item-batches", tags=["item-batches"])
 NEAR_EXPIRY_DAYS = 7  # config value candidate — fixed for demo
 
 
+from sqlalchemy import func, text
+
+
 @router.post("", response_model=ItemBatchOut)
 def create_batch(payload: ItemBatchCreate, db: Session = Depends(get_db),
                   org_id: int = Depends(get_current_org_id)):
+    # 1. Sync Postgres sequence if behind seeded records
+    try:
+        db.execute(text("SELECT setval(pg_get_serial_sequence('item_batches', 'batch_id'), coalesce(max(batch_id), 0) + 1, false) FROM item_batches;"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
     batch = ItemBatch(**payload.model_dump())
     db.add(batch)
     try:
         db.commit()
     except Exception:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Could not create batch")
+        # Fallback to max(batch_id) + 1
+        max_id = db.query(func.max(ItemBatch.batch_id)).scalar() or 0
+        batch = ItemBatch(batch_id=max_id + 1, **payload.model_dump())
+        db.add(batch)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"Could not create batch: {str(e)}")
+
     db.refresh(batch)
     return batch
 

@@ -9,16 +9,35 @@ from app.schemas.suppliers_config import SupplierCreate, SupplierUpdate, Supplie
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
 
+from sqlalchemy import func, text
+
+
 @router.post("", response_model=SupplierOut)
 def create_supplier(payload: SupplierCreate, db: Session = Depends(get_db),
                      org_id: int = Depends(get_current_org_id)):
+    # 1. Sync Postgres sequence if behind seeded records
+    try:
+        db.execute(text("SELECT setval(pg_get_serial_sequence('suppliers', 'supplier_id'), coalesce(max(supplier_id), 0) + 1, false) FROM suppliers;"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
     supplier = Supplier(**payload.model_dump())
     db.add(supplier)
     try:
         db.commit()
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create supplier: {str(e)}")
+        # Fallback to max(supplier_id) + 1
+        max_id = db.query(func.max(Supplier.supplier_id)).scalar() or 0
+        supplier = Supplier(supplier_id=max_id + 1, **payload.model_dump())
+        db.add(supplier)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"Could not create supplier: {str(e)}")
+
     db.refresh(supplier)
     return supplier
 

@@ -9,16 +9,36 @@ from app.schemas.inventory import ItemCreate, ItemUpdate, ItemOut
 router = APIRouter(prefix="/items", tags=["items"])
 
 
+from sqlalchemy import func, text
+
+
 @router.post("", response_model=ItemOut)
 def create_item(payload: ItemCreate, db: Session = Depends(get_db),
                  org_id: int = Depends(get_current_org_id)):
+    # 1. Sync Postgres sequence if it's behind the current max ID from seed scripts
+    try:
+        db.execute(text("SELECT setval(pg_get_serial_sequence('items', 'item_id'), coalesce(max(item_id), 0) + 1, false) FROM items;"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # 2. Attempt standard autoincrement insert
     item = Item(**payload.model_dump())
     db.add(item)
     try:
         db.commit()
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not create item: {str(e)}")
+        # Fallback: manually assign max(item_id) + 1 if DB sequence is unlinked/static
+        max_id = db.query(func.max(Item.item_id)).scalar() or 0
+        item = Item(item_id=max_id + 1, **payload.model_dump())
+        db.add(item)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"Could not create item: {str(e)}")
+
     db.refresh(item)
     return item
 
