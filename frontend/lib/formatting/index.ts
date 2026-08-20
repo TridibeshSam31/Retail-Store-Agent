@@ -11,9 +11,21 @@ import type {
 
 const IST_TIMEZONE = "Asia/Kolkata";
 
+function parseDate(iso?: string | null): Date | null {
+  if (!iso) return null;
+  // If backend timestamp has no timezone offset (e.g. "2026-08-20T14:00:00"), treat it as UTC
+  let str = iso.trim();
+  if (str && !str.endsWith("Z") && !/[+-]\d{2}:\d{2}$/.test(str)) {
+    str += "Z";
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export function formatDate(iso?: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-IN", {
+  const d = parseDate(iso);
+  if (!d) return "—";
+  return d.toLocaleDateString("en-IN", {
     timeZone: IST_TIMEZONE,
     day: "2-digit",
     month: "short",
@@ -22,8 +34,9 @@ export function formatDate(iso?: string | null): string {
 }
 
 export function formatTime(iso?: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleTimeString("en-IN", {
+  const d = parseDate(iso);
+  if (!d) return "—";
+  return d.toLocaleTimeString("en-IN", {
     timeZone: IST_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
@@ -32,13 +45,15 @@ export function formatTime(iso?: string | null): string {
 }
 
 export function formatDateTime(iso?: string | null): string {
-  if (!iso) return "—";
+  const d = parseDate(iso);
+  if (!d) return "—";
   return `${formatDate(iso)} · ${formatTime(iso)}`;
 }
 
 export function formatRelativeTime(iso?: string | null): string {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
+  const d = parseDate(iso);
+  if (!d) return "—";
+  const diff = Date.now() - d.getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;

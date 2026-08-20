@@ -218,7 +218,7 @@ export default function SuppliersPage() {
         {/* Suppliers List Table */}
         <div className="bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden">
           {isLoading ? (
-            <TableSkeleton cols={5} rows={4} />
+            <TableSkeleton cols={4} rows={4} />
           ) : error ? (
             <div className="p-8 text-center text-red-500">Failed to load supplier records.</div>
           ) : suppliers?.length === 0 ? (
@@ -233,7 +233,6 @@ export default function SuppliersPage() {
                   <tr className="border-b border-zinc-100 bg-zinc-50/50">
                     <th className="px-4 py-3 text-[10px] font-700 text-zinc-400 uppercase tracking-wider">ID</th>
                     <th className="px-4 py-3 text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Distributor</th>
-                    <th className="px-4 py-3 text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Primary Channel</th>
                     <th className="px-4 py-3 text-[10px] font-700 text-zinc-400 uppercase tracking-wider">Contact details</th>
                     <th className="px-4 py-3 text-[10px] font-700 text-zinc-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
@@ -246,11 +245,6 @@ export default function SuppliersPage() {
                       </td>
                       <td className="px-4 py-3.5 font-700 text-zinc-900">
                         {s.name}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-700 uppercase border bg-zinc-55 text-zinc-650 border-zinc-200">
-                          {s.pref}
-                        </span>
                       </td>
                       <td className="px-4 py-3.5 space-y-1 font-500 text-zinc-600">
                         {s.phone && <p>Phone: {s.phone}</p>}
