@@ -5,11 +5,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from "@/lib/api/client";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
+import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import type { Supplier, SupplierChannel } from "@/types";
 
 export default function SuppliersPage() {
   const queryClient = useQueryClient();
+  const activeStoreId = useAppStore((state) => state.activeStoreId);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
 
@@ -20,8 +22,8 @@ export default function SuppliersPage() {
   const [channel, setChannel] = useState<SupplierChannel>("whatsapp");
 
   const { data: suppliers, isLoading, error } = useQuery({
-    queryKey: ["suppliers"],
-    queryFn: () => getSuppliers(),
+    queryKey: ["suppliers", activeStoreId],
+    queryFn: () => getSuppliers(activeStoreId ?? undefined),
   });
 
   const saveMutation = useMutation({

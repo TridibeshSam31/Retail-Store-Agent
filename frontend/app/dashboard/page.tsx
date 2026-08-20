@@ -11,6 +11,7 @@ import { useAppStore } from "@/lib/store";
 import { formatQuantity, formatDate, getInventoryTrigger } from "@/lib/formatting";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { InventoryRiskChart, ExpiryTimelineChart } from "@/components/dashboard/DashboardCharts";
 
 export default function DashboardPage() {
   const activeOrgId = useAppStore((state) => state.activeOrgId);
@@ -48,6 +49,7 @@ export default function DashboardPage() {
 
   const criticalShortages = inventory?.filter(item => getInventoryTrigger(item) === "immediately_low") ?? [];
   const predictionWarnings = inventory?.filter(item => getInventoryTrigger(item) === "might_be_low") ?? [];
+  const healthyItems = (inventory?.length ?? 0) - criticalShortages.length - predictionWarnings.length;
   const pendingApprovals = negotiations?.filter(neg => neg.status === "proposed") ?? [];
   const awaitingConfirms = transfers?.filter(xfer => !xfer.is_complete) ?? [];
   const urgentExpiries = expiry?.filter(exp => exp.days_until_expiry && exp.days_until_expiry <= 7) ?? [];
@@ -95,6 +97,22 @@ export default function DashboardPage() {
             </>
           )}
         </div>
+
+        {/* ─── Visual Analytics Row (Charts) ─────────────────────────── */}
+        {!isAnyLoading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="premium-card p-5 bg-white border border-zinc-200 rounded-lg shadow-sm">
+              <InventoryRiskChart
+                critical={criticalShortages.length}
+                warning={predictionWarnings.length}
+                healthy={Math.max(0, healthyItems)}
+              />
+            </div>
+            <div className="premium-card p-5 bg-white border border-zinc-200 rounded-lg shadow-sm">
+              <ExpiryTimelineChart expiries={expiry ?? []} />
+            </div>
+          </div>
+        )}
 
         {/* ─── Critical Shortages & Forecast Alerts ─────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

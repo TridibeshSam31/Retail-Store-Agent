@@ -1,7 +1,7 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getTransfers, confirmTransferShipment } from "@/lib/api/client";
@@ -16,10 +16,11 @@ export default function TransfersPage() {
   const queryClient = useQueryClient();
   const activeOrgId = useAppStore((state) => state.activeOrgId);
   const activeStoreId = useAppStore((state) => state.activeStoreId);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: transfers, isLoading, error, refetch } = useQuery({
     queryKey: ["transfers", activeOrgId, activeStoreId],
-    queryFn: () => getTransfers(),
+    queryFn: () => getTransfers(activeStoreId ?? undefined),
   });
 
   const confirmMutation = useMutation({
@@ -43,7 +44,23 @@ export default function TransfersPage() {
             <h1 className="text-xl font-700 text-zinc-950 uppercase tracking-tight">SHIPMENT TRANSFERS</h1>
             <p className="text-xs text-zinc-500 mt-0.5">Physical shipment dispatch tracking and destination landing verification between retail stores.</p>
           </div>
-          <Button size="sm" variant="secondary" onClick={() => refetch()}>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={isRefreshing}
+            onClick={async () => {
+              setIsRefreshing(true);
+              try {
+                await queryClient.invalidateQueries({ queryKey: ["transfers"] });
+                await refetch();
+                toast.success("Transfer records synced.");
+              } catch {
+                toast.error("Could not sync transfers.");
+              } finally {
+                setIsRefreshing(false);
+              }
+            }}
+          >
             Sync Transfers
           </Button>
         </div>

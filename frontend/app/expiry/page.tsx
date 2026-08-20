@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getExpiryAlerts } from "@/lib/api/client";
 import { useAppStore } from "@/lib/store";
@@ -8,10 +9,13 @@ import { StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { formatQuantity, formatDate } from "@/lib/formatting";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function ExpiryPage() {
+  const queryClient = useQueryClient();
   const activeOrgId = useAppStore((state) => state.activeOrgId);
   const activeStoreId = useAppStore((state) => state.activeStoreId);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: alerts, isLoading, error, refetch } = useQuery({
     queryKey: ["expiryAlerts", activeOrgId, activeStoreId],
@@ -26,7 +30,23 @@ export default function ExpiryPage() {
             <h1 className="text-xl font-700 text-zinc-950 uppercase tracking-tight">BATCH EXPIRY ALERTS</h1>
             <p className="text-xs text-zinc-500 mt-0.5">Independent tracking of food safety, consumable batch shelf lives, and stock retirement timelines.</p>
           </div>
-          <Button size="sm" variant="secondary" onClick={() => refetch()}>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={isRefreshing}
+            onClick={async () => {
+              setIsRefreshing(true);
+              try {
+                await queryClient.invalidateQueries({ queryKey: ["expiryAlerts"] });
+                await refetch();
+                toast.success("Batch expiry data synchronized.");
+              } catch {
+                toast.error("Could not sync batch data.");
+              } finally {
+                setIsRefreshing(false);
+              }
+            }}
+          >
             Sync Batches
           </Button>
         </div>

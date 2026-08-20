@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createItem, updateItem, updateInventoryItem } from "@/lib/api/client";
+import { createItem, updateItem, updateInventoryItem, createItemBatch } from "@/lib/api/client";
 import { Button } from "@/components/ui/primitives";
 import { toast } from "sonner";
 import type { CurrentInventory } from "@/types";
@@ -29,6 +29,7 @@ export function UpdateItemModal({
   const [category, setCategory] = useState("");
   const [unit, setUnit] = useState("");
   const [qtyOnHand, setQtyOnHand] = useState<number | string>(0);
+  const [expiryDate, setExpiryDate] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ export function UpdateItemModal({
         setCategory("");
         setUnit("units");
         setQtyOnHand(0);
+        setExpiryDate("");
       } else if (inventoryItem) {
         setItemName(inventoryItem.item?.item_name ?? "");
         setCategory(inventoryItem.item?.category ?? "");
@@ -84,6 +86,16 @@ export function UpdateItemModal({
 
         // 2. Set initial inventory stock quantity for target store
         await updateInventoryItem(effectiveStoreId, newItem.item_id, parsedQty);
+
+        // 3. If expiry date provided, create an item batch
+        if (expiryDate) {
+          await createItemBatch({
+            store_id: effectiveStoreId,
+            item_id: newItem.item_id,
+            qty: parsedQty,
+            expiry_date: expiryDate,
+          });
+        }
 
         toast.success(`Added ${itemName} to Store #${effectiveStoreId} successfully.`);
       } else if (inventoryItem) {
@@ -185,28 +197,44 @@ export function UpdateItemModal({
               <label className="text-xs font-700 text-zinc-700 uppercase tracking-wider">
                 Category
               </label>
-              <input
-                type="text"
+              <select
                 required
-                placeholder="e.g. Produce"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
-              />
+              >
+                <option value="" disabled>Select category…</option>
+                <option value="Grains">Grains</option>
+                <option value="Pulses">Pulses</option>
+                <option value="Oils & Fats">Oils &amp; Fats</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Produce">Produce</option>
+                <option value="Condiments">Condiments</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Frozen">Frozen</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-700 text-zinc-700 uppercase tracking-wider">
                 Unit of Measure
               </label>
-              <input
-                type="text"
+              <select
                 required
-                placeholder="e.g. kg"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
-              />
+              >
+                <option value="kg">kg</option>
+                <option value="L">L (Litre)</option>
+                <option value="liter">liter</option>
+                <option value="pcs">pcs (Pieces)</option>
+                <option value="units">units</option>
+                <option value="cases">cases</option>
+              </select>
             </div>
           </div>
 
@@ -223,6 +251,21 @@ export function UpdateItemModal({
               className="w-full px-3 py-2 text-xs border border-zinc-300 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-500 bg-white font-mono text-zinc-950 font-700"
             />
           </div>
+
+          {isAddMode && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-700 text-zinc-700 uppercase tracking-wider">
+                Expiry Date <span className="text-zinc-400 font-500 normal-case">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="pt-4 flex items-center justify-end gap-3 border-t border-zinc-100">

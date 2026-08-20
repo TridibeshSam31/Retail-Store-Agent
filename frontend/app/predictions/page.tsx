@@ -7,6 +7,7 @@ import { RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/store";
 import { formatQuantity, getInventoryTrigger } from "@/lib/formatting";
+import { ROPFormula, EOQFormula, FormulaLegend } from "@/components/ui/MathRenderer";
 import Link from "next/link";
 
 export default function PredictionsPage() {
@@ -40,9 +41,7 @@ export default function PredictionsPage() {
               <p>
                 Our system predicts the daily sales demand (<code className="font-mono bg-zinc-100 text-zinc-800 px-1 rounded">d_hat</code>) using machine learning, then evaluates the Reorder Point (ROP):
               </p>
-              <div className="font-mono text-zinc-900 bg-zinc-50 border border-zinc-150 rounded p-2.5 text-center">
-                ROP = (d_hat × Lead Time) + Safety Stock
-              </div>
+              <ROPFormula />
               <p className="text-[11px] text-zinc-400">
                 Safety Stock accounts for sales volatility (demand standard deviation) under a 95% service level confidence coefficient.
               </p>
@@ -51,14 +50,13 @@ export default function PredictionsPage() {
               <p>
                 When restock triggers occur, order sizes are calculated using the Economic Order Quantity (EOQ) formula:
               </p>
-              <div className="font-mono text-zinc-900 bg-zinc-50 border border-zinc-150 rounded p-2.5 text-center">
-                EOQ = √ ( (2 × Annual Demand × Order Cost) / Holding Cost )
-              </div>
+              <EOQFormula />
               <p className="text-[11px] text-zinc-400">
                 Balances warehouse storage costs against transport dispatch shipping fees to calculate optimal replenishment loads.
               </p>
             </div>
           </div>
+          <FormulaLegend />
         </div>
 
         {/* Alert Category Explanation Cards */}

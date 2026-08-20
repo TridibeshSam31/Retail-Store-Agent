@@ -28,6 +28,8 @@ interface PageProps {
   params: Promise<{ id: string }> | { id: string };
 }
 
+const MAX_RENEGOTIATION_ATTEMPTS = 3;
+
 export default function NegotiationDetailPage({ params }: PageProps) {
   const resolvedParams = React.use(
     params instanceof Promise ? params : Promise.resolve(params)
@@ -89,6 +91,15 @@ export default function NegotiationDetailPage({ params }: PageProps) {
     if (transfers?.some((t) => t.from_store_id === storeId || t.to_store_id === storeId)) return true;
     return false;
   }, [neg, storeId, transfers]);
+
+  // Count renegotiation attempts based on manager/store turns beyond initial round
+  const renegotiationAttempts = React.useMemo(() => {
+    if (!neg?.turns) return 0;
+    // Count turns that are store replies beyond turn 1
+    return neg.turns.filter((t) => t.turn_number > 2 && t.store_id !== null).length;
+  }, [neg]);
+
+  const canRenegotiate = renegotiationAttempts < MAX_RENEGOTIATION_ATTEMPTS;
 
   const { data: supplierDraft } = useQuery({
     queryKey: ["supplierDraft", id],
@@ -429,15 +440,35 @@ export default function NegotiationDetailPage({ params }: PageProps) {
               </div>
             ) : (
               <div className="border border-zinc-150 rounded-lg p-4 space-y-3 bg-zinc-50">
-                <label className="block text-xs font-700 text-zinc-650 uppercase">Renegotiation Argument (Optional)</label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-700 text-zinc-650 uppercase">Renegotiation Argument (Optional)</label>
+                  <span className={cn(
+                    "text-[10px] font-mono font-700 px-1.5 py-0.5 rounded border uppercase",
+                    canRenegotiate ? "bg-zinc-100 text-zinc-600 border-zinc-200" : "bg-red-50 text-red-700 border-red-200"
+                  )}>
+                    Attempts: {renegotiationAttempts}/{MAX_RENEGOTIATION_ATTEMPTS}
+                  </span>
+                </div>
+                {!canRenegotiate && (
+                  <p className="text-xs text-red-600 font-500">
+                    Maximum renegotiation limit reached ({MAX_RENEGOTIATION_ATTEMPTS} attempts). Please contact an external supplier or accept alternative terms.
+                  </p>
+                )}
                 <textarea
-                  placeholder="Specify renegotiation message or target quantities..."
+                  placeholder={canRenegotiate ? "Specify renegotiation message or target quantities..." : "Renegotiation cap reached."}
                   value={renegotiateArg}
+                  disabled={!canRenegotiate}
                   onChange={(e) => setRenegotiateArg(e.target.value)}
-                  className="w-full h-20 px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-white"
+                  className="w-full h-20 px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed"
                 />
                 <div className="flex gap-2">
-                  <Button variant="primary" size="sm" onClick={() => renegotiateMutation.mutate()} loading={renegotiateMutation.isPending}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={!canRenegotiate}
+                    onClick={() => renegotiateMutation.mutate()}
+                    loading={renegotiateMutation.isPending}
+                  >
                     Start Renegotiation
                   </Button>
                   {supplierDraft?.has_supplier ? (
@@ -473,15 +504,35 @@ export default function NegotiationDetailPage({ params }: PageProps) {
           <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-700 uppercase tracking-wider text-zinc-950">Choose Next Step</h3>
             <div className="border border-zinc-150 rounded-lg p-4 space-y-3 bg-zinc-50">
-              <label className="block text-xs font-700 text-zinc-650 uppercase">Renegotiation Argument (Optional)</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-700 text-zinc-650 uppercase">Renegotiation Argument (Optional)</label>
+                <span className={cn(
+                  "text-[10px] font-mono font-700 px-1.5 py-0.5 rounded border uppercase",
+                  canRenegotiate ? "bg-zinc-100 text-zinc-600 border-zinc-200" : "bg-red-50 text-red-700 border-red-200"
+                )}>
+                  Attempts: {renegotiationAttempts}/{MAX_RENEGOTIATION_ATTEMPTS}
+                </span>
+              </div>
+              {!canRenegotiate && (
+                <p className="text-xs text-red-600 font-500">
+                  Maximum renegotiation limit reached ({MAX_RENEGOTIATION_ATTEMPTS} attempts). Escalate to supplier restock.
+                </p>
+              )}
               <textarea
-                placeholder="Specify renegotiation message or target quantities..."
+                placeholder={canRenegotiate ? "Specify renegotiation message or target quantities..." : "Renegotiation cap reached."}
                 value={renegotiateArg}
+                disabled={!canRenegotiate}
                 onChange={(e) => setRenegotiateArg(e.target.value)}
-                className="w-full h-20 px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-white"
+                className="w-full h-20 px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-white disabled:bg-zinc-100 disabled:cursor-not-allowed"
               />
               <div className="flex gap-2">
-                <Button variant="primary" size="sm" onClick={() => renegotiateMutation.mutate()} loading={renegotiateMutation.isPending}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={!canRenegotiate}
+                  onClick={() => renegotiateMutation.mutate()}
+                  loading={renegotiateMutation.isPending}
+                >
                   Start Renegotiation
                 </Button>
                 {supplierDraft?.has_supplier ? (

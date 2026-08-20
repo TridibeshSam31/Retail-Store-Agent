@@ -683,6 +683,27 @@ export async function markSupplierDraftSent(negotiationId: number): Promise<void
   return post<void>(`/supplier-contact/${negotiationId}/sent`);
 }
 
+// ─── Item Batches ─────────────────────────────────────────────
+
+export async function createItemBatch(data: {
+  store_id: number;
+  item_id: number;
+  qty: number;
+  expiry_date: string;
+}): Promise<ExpiryAlert> {
+  if (IS_DEMO) {
+    await delay(300);
+    return {
+      batch_id: Math.floor(Math.random() * 10000),
+      store_id: data.store_id,
+      item_id: data.item_id,
+      qty: data.qty,
+      expiry_date: data.expiry_date,
+    };
+  }
+  return post<ExpiryAlert>("/item-batches", data);
+}
+
 // ─── Expiry ───────────────────────────────────────────────────
 
 export async function getExpiryAlerts(storeId?: number): Promise<ExpiryAlert[]> {

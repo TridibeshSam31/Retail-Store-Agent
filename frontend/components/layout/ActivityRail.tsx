@@ -1,11 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { getActivity } from "@/lib/api/client";
 import { activityEventVariant, formatRelativeTime } from "@/lib/formatting";
 import { ActivitySkeleton } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { ActivityEvent, ActivityEventType } from "@/types";
 
 function ActivityDot({ type }: { type: ActivityEventType }) {
@@ -72,11 +74,26 @@ function ActivityItem({ event }: { event: ActivityEvent }) {
 }
 
 export function ActivityRail() {
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: events, isLoading, error, refetch } = useQuery({
     queryKey: ["activity"],
     queryFn: () => getActivity(30),
     refetchInterval: 15000,
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["activity"] });
+      await refetch();
+      toast.success("Timeline synchronized.");
+    } catch {
+      toast.error("Could not refresh timeline.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <aside className="hidden xl:flex flex-col w-[320px] shrink-0 bg-white border-l border-zinc-200 h-full">
@@ -89,9 +106,13 @@ export function ActivityRail() {
           </p>
         </div>
         <button
-          onClick={() => refetch()}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
           aria-label="Refresh activity"
-          className="text-zinc-400 hover:text-zinc-950 transition-colors"
+          className={cn(
+            "text-zinc-400 hover:text-zinc-950 transition-colors disabled:opacity-50",
+            isRefreshing && "animate-spin"
+          )}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M23 4v6h-6" />

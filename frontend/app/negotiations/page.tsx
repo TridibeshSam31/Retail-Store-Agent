@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getNegotiations, getStores } from "@/lib/api/client";
 import { StatusBadge, RiskBadge, StoreBadge } from "@/components/ui/badges";
 import { TableSkeleton, EmptyState, Button } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/store";
 import { negotiationStatusLabel, negotiationStatusVariant, resolutionLabel, formatDateTime } from "@/lib/formatting";
+import { toast } from "sonner";
 import type { NegotiationStatus } from "@/types";
 import Link from "next/link";
 
 export default function NegotiationsPage() {
+  const queryClient = useQueryClient();
   const activeOrgId = useAppStore((state) => state.activeOrgId);
   const activeStoreId = useAppStore((state) => state.activeStoreId);
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [storeFilter, setStoreFilter] = useState<string>(String(activeStoreId || "all"));
 
   useEffect(() => {
@@ -45,7 +48,23 @@ export default function NegotiationsPage() {
             <p className="text-xs text-zinc-500 mt-0.5 font-500">Autonomous communications between store agents to resolve stock deficits through peer-to-peer transfers.</p>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => refetch()} variant="secondary">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={isRefreshing}
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await queryClient.invalidateQueries({ queryKey: ["negotiations"] });
+                  await refetch();
+                  toast.success("Negotiations feed refreshed.");
+                } catch {
+                  toast.error("Could not refresh negotiations.");
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
+            >
               Refresh Feed
             </Button>
           </div>
