@@ -41,7 +41,7 @@ def get_safe_surplus(store_id: int, item_id: int) -> dict:
         # 3. Calculate Expired (Assuming 0 for demo unless you have an item_batches table)
         expired_qty = db.execute(
             text("""
-                SELECT COALESCE(SUM(quantity), 0) 
+                SELECT COALESCE(SUM(qty), 0) 
                 FROM item_batches 
                 WHERE store_id = :s 
                   AND item_id = :i 
