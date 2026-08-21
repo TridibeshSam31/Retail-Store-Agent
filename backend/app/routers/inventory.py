@@ -13,15 +13,20 @@ router = APIRouter(prefix="/inventory", tags=["inventory"])
 @router.post("", response_model=CurrentInventoryOut)
 def create_inventory(payload: CurrentInventoryCreate, db: Session = Depends(get_db),
                       org_id: int = Depends(get_current_org_id)):
-    row = CurrentInventory(**payload.model_dump())
-    db.add(row)
+    row = db.get(CurrentInventory, (payload.store_id, payload.item_id))
+    if row:
+        row.qty_on_hand = payload.qty_on_hand
+    else:
+        row = CurrentInventory(**payload.model_dump())
+        db.add(row)
+
     try:
         db.flush()  # row visible in this session, not yet committed
         negotiation_id = check_immediately_low(db, row.store_id, row.item_id, row.qty_on_hand)
         db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Could not create inventory record")
+        raise HTTPException(status_code=400, detail=f"Could not create or update inventory record: {str(e)}")
     db.refresh(row)
 
     if negotiation_id is not None:

@@ -7,7 +7,6 @@ import { getOrgs, getStoresForPicker, selectIdentity } from "@/lib/api/client";
 import { Button } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
-import Link from "next/link";
 import {
   TrendingDown,
   Scale,
@@ -40,15 +39,14 @@ export default function WareAgentHomepage() {
   });
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isLoadingOrgs) {
-      interval = setInterval(() => {
-        setLoadingSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
+    if (!isLoadingOrgs) return;
+    const interval = setInterval(() => {
+      setLoadingSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      clearInterval(interval);
       setLoadingSeconds(0);
-    }
-    return () => clearInterval(interval);
+    };
   }, [isLoadingOrgs]);
 
   // Fetch stores once organization is selected

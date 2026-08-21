@@ -244,6 +244,12 @@ export async function getItem(id: number): Promise<Item> {
 export async function createItem(data: Omit<Item, "item_id">): Promise<Item> {
   if (IS_DEMO) {
     await delay(10);
+    const existing = DEMO_ITEMS.find(
+      (i) => i.item_name.trim().toLowerCase() === data.item_name.trim().toLowerCase()
+    );
+    if (existing) {
+      return existing;
+    }
     const newItem: Item = { item_id: Math.max(...DEMO_ITEMS.map((i) => i.item_id), 0) + 1, ...data };
     DEMO_ITEMS.push(newItem);
     return newItem;
@@ -436,8 +442,23 @@ export async function createInventoryItem(data: {
   qty_on_hand: number;
 }): Promise<CurrentInventory> {
   if (IS_DEMO) {
-    await delay(800);
-    const newItem = { ...data } as CurrentInventory;
+    await delay(10);
+    const existing = DEMO_INVENTORY.find(
+      (i) => i.store_id === data.store_id && i.item_id === data.item_id
+    );
+    if (existing) {
+      existing.qty_on_hand = data.qty_on_hand;
+      existing.updated_at = new Date().toISOString();
+      return { ...existing };
+    }
+    const store = DEMO_STORES.find((s) => s.store_id === data.store_id);
+    const item = DEMO_ITEMS.find((i) => i.item_id === data.item_id);
+    const newItem: CurrentInventory = {
+      ...data,
+      store,
+      item,
+      updated_at: new Date().toISOString(),
+    };
     DEMO_INVENTORY.push(newItem);
     return newItem;
   }

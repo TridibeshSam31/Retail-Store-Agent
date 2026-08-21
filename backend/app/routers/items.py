@@ -15,14 +15,19 @@ from sqlalchemy import func, text
 @router.post("", response_model=ItemOut)
 def create_item(payload: ItemCreate, db: Session = Depends(get_db),
                  org_id: int = Depends(get_current_org_id)):
-    # 1. Sync Postgres sequence if it's behind the current max ID from seed scripts
+    # 1. Check if item with same name already exists
+    existing = db.query(Item).filter(func.lower(Item.item_name) == payload.item_name.strip().lower()).first()
+    if existing:
+        return existing
+
+    # 2. Sync Postgres sequence if it's behind the current max ID from seed scripts
     try:
         db.execute(text("SELECT setval(pg_get_serial_sequence('items', 'item_id'), coalesce(max(item_id), 0) + 1, false) FROM items;"))
         db.commit()
     except Exception:
         db.rollback()
 
-    # 2. Attempt standard autoincrement insert
+    # 3. Attempt standard autoincrement insert
     item = Item(**payload.model_dump())
     db.add(item)
     try:
