@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   getInventory,
   getStores,
-  getItems,
   deleteInventoryItem,
   selectIdentity,
 } from "@/lib/api/client";
@@ -25,7 +24,6 @@ export default function InventoryPage() {
   const setActiveContext = useAppStore((state) => state.setActiveContext);
   const setSession = useAppStore((state) => state.setSession);
 
-  const [storeFilter, setStoreFilter] = useState<string>(String(activeStoreId || "1"));
   const [triggerFilter, setTriggerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [modalMode, setModalMode] = useState<"edit" | "add">("edit");
@@ -33,6 +31,9 @@ export default function InventoryPage() {
   const [modalItem, setModalItem] = useState<CurrentInventory | null>(null);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedStoreOverride, setSelectedStoreOverride] = useState<string | null>(null);
+  const storeFilter = selectedStoreOverride ?? String(activeStoreId);
+  const setStoreFilter = (val: string) => setSelectedStoreOverride(val);
   const queryClient = useQueryClient();
 
   const handleRefresh = async () => {
@@ -48,19 +49,9 @@ export default function InventoryPage() {
     }
   };
 
-  // Sync store filter when active store changes in top bar
-  useEffect(() => {
-    setStoreFilter(String(activeStoreId));
-  }, [activeStoreId]);
-
   const { data: stores } = useQuery({
     queryKey: ["stores", activeOrgId],
     queryFn: () => getStores(activeOrgId),
-  });
-
-  const { data: items } = useQuery({
-    queryKey: ["items"],
-    queryFn: () => getItems(),
   });
 
   const { data: rawInventory, isLoading, error, refetch } = useQuery({

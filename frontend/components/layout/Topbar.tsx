@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getOrgs, getStoresForPicker, selectIdentity } from "@/lib/api/client";
@@ -125,14 +126,18 @@ export function Topbar({ className }: TopbarProps) {
     >
       {/* Brand logo & Page Title */}
       <div className="flex items-center gap-4 min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="size-6 rounded bg-black text-white flex items-center justify-center font-900 text-xs">
+        <Link
+          href="/"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity group cursor-pointer"
+          title="Return to WareAgent Landing Page"
+        >
+          <div className="size-6 rounded bg-black text-white flex items-center justify-center font-900 text-xs group-hover:scale-105 transition-transform">
             W
           </div>
           <span className="font-900 tracking-tighter text-sm uppercase text-black hidden sm:inline">
             WareAgent
           </span>
-        </div>
+        </Link>
         <span className="h-4 w-px bg-zinc-200 hidden sm:inline" />
         <h1 className="text-xs font-900 uppercase tracking-wider text-zinc-900 truncate">
           {title}

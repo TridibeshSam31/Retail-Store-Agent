@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   createItem,
@@ -21,8 +21,13 @@ export interface UpdateItemModalProps {
   targetStoreId?: number;
 }
 
-export function UpdateItemModal({
-  isOpen,
+export function UpdateItemModal(props: UpdateItemModalProps) {
+  if (!props.isOpen) return null;
+  if (props.mode !== "add" && !props.inventoryItem) return null;
+  return <UpdateItemModalContent key={`${props.mode}-${props.inventoryItem?.item_id ?? "new"}`} {...props} />;
+}
+
+function UpdateItemModalContent({
   onClose,
   mode = "edit",
   inventoryItem,
@@ -31,11 +36,19 @@ export function UpdateItemModal({
   const queryClient = useQueryClient();
 
   const isAddMode = mode === "add";
-  const [itemName, setItemName] = useState("");
-  const [category, setCategory] = useState("");
+  const [itemName, setItemName] = useState(
+    !isAddMode && inventoryItem ? inventoryItem.item?.item_name ?? "" : ""
+  );
+  const [category, setCategory] = useState(
+    !isAddMode && inventoryItem ? inventoryItem.item?.category ?? "" : ""
+  );
   const [customCategory, setCustomCategory] = useState("");
-  const [unit, setUnit] = useState("");
-  const [qtyOnHand, setQtyOnHand] = useState<number | string>(0);
+  const [unit, setUnit] = useState(
+    !isAddMode && inventoryItem ? inventoryItem.item?.unit ?? "units" : "units"
+  );
+  const [qtyOnHand, setQtyOnHand] = useState<number | string>(
+    !isAddMode && inventoryItem ? inventoryItem.qty_on_hand ?? 0 : 0
+  );
   const [expiryDate, setExpiryDate] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -43,30 +56,6 @@ export function UpdateItemModal({
   const effectiveStoreId = isAddMode
     ? targetStoreId || 1
     : inventoryItem?.store_id || 1;
-
-  useEffect(() => {
-    if (isOpen) {
-      setErrorMsg(null);
-      if (isAddMode) {
-        setItemName("");
-        setCategory("");
-        setCustomCategory("");
-        setUnit("units");
-        setQtyOnHand(0);
-        setExpiryDate("");
-      } else if (inventoryItem) {
-        setItemName(inventoryItem.item?.item_name ?? "");
-        const currentCat = inventoryItem.item?.category ?? "";
-        setCategory(currentCat);
-        setCustomCategory("");
-        setUnit(inventoryItem.item?.unit ?? "units");
-        setQtyOnHand(inventoryItem.qty_on_hand ?? 0);
-      }
-    }
-  }, [isOpen, isAddMode, inventoryItem]);
-
-  if (!isOpen) return null;
-  if (!isAddMode && !inventoryItem) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,6 +218,7 @@ export function UpdateItemModal({
                 <option value="Oils & Fats">Oils &amp; Fats</option>
                 <option value="Dairy">Dairy</option>
                 <option value="Produce">Produce</option>
+                <option value="Meat">Meat</option>
                 <option value="Condiments">Condiments</option>
                 <option value="Bakery">Bakery</option>
                 <option value="Frozen">Frozen</option>
@@ -256,14 +246,15 @@ export function UpdateItemModal({
                 required
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500"
+                className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-1 focus:ring-zinc-400 bg-zinc-50 text-zinc-900 font-500 cursor-pointer"
               >
-                <option value="kg">kg</option>
-                <option value="L">L (Litre)</option>
-                <option value="liter">liter</option>
+                <option value="kg">kg (Kilograms)</option>
+                <option value="g">g (Grams)</option>
+                <option value="L">L (Litres)</option>
                 <option value="pcs">pcs (Pieces)</option>
                 <option value="units">units</option>
                 <option value="cases">cases</option>
+                <option value="packs">packs</option>
               </select>
             </div>
           </div>
