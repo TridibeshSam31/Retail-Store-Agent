@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { getNegotiations, getStores } from "@/lib/api/client";
@@ -19,11 +19,9 @@ export default function NegotiationsPage() {
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [storeFilter, setStoreFilter] = useState<string>(String(activeStoreId || "all"));
-
-  useEffect(() => {
-    setStoreFilter(String(activeStoreId));
-  }, [activeStoreId]);
+  const [selectedStoreOverride, setSelectedStoreOverride] = useState<string | null>(null);
+  const storeFilter = selectedStoreOverride ?? (activeStoreId ? String(activeStoreId) : "all");
+  const setStoreFilter = (val: string) => setSelectedStoreOverride(val);
 
   const { data: stores } = useQuery({
     queryKey: ["stores", activeOrgId],

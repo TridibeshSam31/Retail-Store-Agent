@@ -121,12 +121,3 @@ export function StoreBadge({
     </span>
   );
 }
-
-export function DemoBanner() {
-  return (
-    <div className="flex items-center justify-center gap-2 bg-[#fffbeb] border-b border-[#ffe3e3] px-4 py-2 text-[#b07d0d] text-[10px] font-mono font-700 uppercase tracking-wider">
-      <span className="inline-block size-1.5 rounded-full bg-amber-500 animate-pulse-dot" />
-      Demo Mode active / Mock Client Fixtures loaded
-    </div>
-  );
-}

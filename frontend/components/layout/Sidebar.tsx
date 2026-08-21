@@ -120,14 +120,18 @@ export function Sidebar() {
   return (
     <aside className="flex flex-col w-[240px] shrink-0 bg-[#09090b] text-zinc-400 h-full overflow-y-auto select-none border-r border-zinc-900">
       {/* Branding Header */}
-      <div className="px-6 py-6 flex items-center gap-3">
-        <div className="size-6 rounded bg-white flex items-center justify-center text-black font-900 text-xs">
+      <Link
+        href="/"
+        className="px-6 py-6 flex items-center gap-3 hover:opacity-80 transition-opacity group cursor-pointer"
+        title="Return to WareAgent Landing Page"
+      >
+        <div className="size-6 rounded bg-white flex items-center justify-center text-black font-900 text-xs group-hover:scale-105 transition-transform">
           W
         </div>
         <div className="leading-tight">
           <p className="text-[12px] font-800 uppercase tracking-wider text-white">WareAgent</p>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation Groups */}
       <nav className="flex-1 px-4 py-2 space-y-6">

@@ -7,7 +7,16 @@ import { getOrgs, getStoresForPicker, selectIdentity } from "@/lib/api/client";
 import { Button } from "@/components/ui/primitives";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
-import Link from "next/link";
+import {
+  TrendingDown,
+  Scale,
+  Globe,
+  Hourglass,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpRight,
+} from "lucide-react";
 
 export default function WareAgentHomepage() {
   const router = useRouter();
@@ -30,15 +39,14 @@ export default function WareAgentHomepage() {
   });
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isLoadingOrgs) {
-      interval = setInterval(() => {
-        setLoadingSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
+    if (!isLoadingOrgs) return;
+    const interval = setInterval(() => {
+      setLoadingSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      clearInterval(interval);
       setLoadingSeconds(0);
-    }
-    return () => clearInterval(interval);
+    };
   }, [isLoadingOrgs]);
 
   // Fetch stores once organization is selected
@@ -710,17 +718,17 @@ export default function WareAgentHomepage() {
             <div className="flex gap-2">
               <button
                 onClick={() => scrollCarousel("left")}
-                className="size-10 rounded-full border border-zinc-400 hover:border-black hover:bg-white/60 flex items-center justify-center transition-all cursor-pointer"
+                className="size-10 rounded-full border border-zinc-400 hover:border-black hover:bg-white/60 flex items-center justify-center transition-all cursor-pointer text-zinc-700 hover:text-black"
                 title="Scroll Left"
               >
-                ←
+                <ChevronLeft className="size-5" />
               </button>
               <button
                 onClick={() => scrollCarousel("right")}
-                className="size-10 rounded-full border border-zinc-400 hover:border-black hover:bg-white/60 flex items-center justify-center transition-all cursor-pointer"
+                className="size-10 rounded-full border border-zinc-400 hover:border-black hover:bg-white/60 flex items-center justify-center transition-all cursor-pointer text-zinc-700 hover:text-black"
                 title="Scroll Right"
               >
-                →
+                <ChevronRight className="size-5" />
               </button>
             </div>
           </div>
@@ -732,10 +740,10 @@ export default function WareAgentHomepage() {
             style={{ scrollbarWidth: "none" }}
           >
             {/* CARD 1 */}
-            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-[#a3e635] hover:shadow-md transition-all">
+            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-[#a3e635] hover:shadow-md transition-all group">
               <div className="space-y-4">
-                <div className="size-16 rounded-xl bg-lime-100/80 border border-lime-200 flex items-center justify-center text-2xl">
-                  📉
+                <div className="size-14 rounded-xl bg-lime-100/90 border border-lime-200/80 flex items-center justify-center text-lime-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <TrendingDown className="size-7 stroke-[2.2]" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-[9px] font-mono font-800 text-lime-700 uppercase tracking-widest">Category / Alert</span>
@@ -745,16 +753,16 @@ export default function WareAgentHomepage() {
                   </p>
                 </div>
               </div>
-              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer">
-                Explore →
+              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer flex items-center gap-1">
+                Explore <ArrowUpRight className="size-3.5" />
               </button>
             </div>
 
             {/* CARD 2 */}
-            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-purple-400 hover:shadow-md transition-all">
+            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-purple-400 hover:shadow-md transition-all group">
               <div className="space-y-4">
-                <div className="size-16 rounded-xl bg-purple-100/80 border border-purple-200 flex items-center justify-center text-2xl">
-                  ⚖️
+                <div className="size-14 rounded-xl bg-purple-100/90 border border-purple-200/80 flex items-center justify-center text-purple-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <Scale className="size-7 stroke-[2.2]" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-[9px] font-mono font-800 text-purple-700 uppercase tracking-widest">Category / Negotiation</span>
@@ -764,16 +772,16 @@ export default function WareAgentHomepage() {
                   </p>
                 </div>
               </div>
-              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer">
-                Explore →
+              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer flex items-center gap-1">
+                Explore <ArrowUpRight className="size-3.5" />
               </button>
             </div>
 
             {/* CARD 3 */}
-            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-blue-400 hover:shadow-md transition-all">
+            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-blue-400 hover:shadow-md transition-all group">
               <div className="space-y-4">
-                <div className="size-16 rounded-xl bg-blue-100/80 border border-blue-200 flex items-center justify-center text-2xl">
-                  🌐
+                <div className="size-14 rounded-xl bg-blue-100/90 border border-blue-200/80 flex items-center justify-center text-blue-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <Globe className="size-7 stroke-[2.2]" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-[9px] font-mono font-800 text-blue-700 uppercase tracking-widest">Category / Escalate</span>
@@ -783,16 +791,16 @@ export default function WareAgentHomepage() {
                   </p>
                 </div>
               </div>
-              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer">
-                Explore →
+              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer flex items-center gap-1">
+                Explore <ArrowUpRight className="size-3.5" />
               </button>
             </div>
 
             {/* CARD 4 */}
-            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-amber-400 hover:shadow-md transition-all">
+            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-amber-400 hover:shadow-md transition-all group">
               <div className="space-y-4">
-                <div className="size-16 rounded-xl bg-amber-100/80 border border-amber-200 flex items-center justify-center text-2xl">
-                  ⏳
+                <div className="size-14 rounded-xl bg-amber-100/90 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <Hourglass className="size-7 stroke-[2.2]" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-[9px] font-mono font-800 text-amber-700 uppercase tracking-widest">Category / Lifecycle</span>
@@ -802,16 +810,16 @@ export default function WareAgentHomepage() {
                   </p>
                 </div>
               </div>
-              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer">
-                Explore →
+              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer flex items-center gap-1">
+                Explore <ArrowUpRight className="size-3.5" />
               </button>
             </div>
 
             {/* CARD 5 */}
-            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-emerald-400 hover:shadow-md transition-all">
+            <div className="min-w-[280px] sm:min-w-[320px] bg-white rounded-2xl p-6 flex flex-col justify-between h-[360px] border border-zinc-200/80 snap-start shadow-sm hover:border-emerald-400 hover:shadow-md transition-all group">
               <div className="space-y-4">
-                <div className="size-16 rounded-xl bg-emerald-100/80 border border-emerald-200 flex items-center justify-center text-2xl">
-                  ✅
+                <div className="size-14 rounded-xl bg-emerald-100/90 border border-emerald-200/80 flex items-center justify-center text-emerald-700 shadow-xs group-hover:scale-105 transition-transform">
+                  <CheckCircle2 className="size-7 stroke-[2.2]" />
                 </div>
                 <div className="space-y-2">
                   <span className="text-[9px] font-mono font-800 text-emerald-700 uppercase tracking-widest">Category / Transfer</span>
@@ -821,8 +829,8 @@ export default function WareAgentHomepage() {
                   </p>
                 </div>
               </div>
-              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer">
-                Explore →
+              <button onClick={scrollToSelector} className="text-[10px] font-mono font-700 text-zinc-700 hover:text-black uppercase tracking-wider text-left pt-2 cursor-pointer flex items-center gap-1">
+                Explore <ArrowUpRight className="size-3.5" />
               </button>
             </div>
 
