@@ -386,7 +386,7 @@ def escalate_to_supplier(state: AgentState):
 
         neg = db.get(Negotiation, negotiation_id)
         neg.resolution_type = "supplier"
-        neg.status = "proposed"
+        neg.status = "completed"
         db.commit()
     finally:
         db.close()
