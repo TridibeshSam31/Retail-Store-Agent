@@ -46,9 +46,8 @@ from app.models import (
     CurrentInventory,
 )
 from langgraph.prebuilt import ToolNode
-from tools.inventory_tools import ALL_TOOLS
+from lang.tools.inventory_tools import ALL_TOOLS, get_safe_surplus
 from pydantic import BaseModel, Field
-from tools.inventory_tools import get_safe_surplus
 from typing import Annotated
 from langgraph.graph.message import add_messages
 from app.services.prediction_service import get_usable_surplus
