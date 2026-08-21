@@ -215,7 +215,9 @@ def hard_validator(state: AgentState):
     try:
         # Extract proposed quantity from the AgentDecision tool call
         decision_data = last_message.tool_calls[0]['args'] 
+        decision = decision_data.get("decision", "REFUSE")
         proposed_qty = decision_data.get("quantity", 0)
+        reason = decision_data.get("reason", "")
         
         curr_store_id = state['surplus_stores'][state['current_responder_idx']]['surplus_store_id']
         
@@ -229,14 +231,36 @@ def hard_validator(state: AgentState):
             
         # It passed validation! Update status and append to allocations if agreed
         status = "store_agreed" if proposed_qty > 0 else "refused"
+        
+        response_text = (
+            f"Store {curr_store_id} ({decision}): "
+            f"{proposed_qty} units. "
+            f"Reason: {reason}"
+        )
+
+        turn_number = state["turn_count"] + 1
+
+        _persist_turn(
+            state["negotiation_id"],
+            int(curr_store_id),
+            turn_number,
+            response_text
+        )
+
         allocations = state.get("allocations", [])
         
         if status == "store_agreed":
             allocations.append({"surplus_store_id": curr_store_id, "qty": proposed_qty})
             
-        return {"messages": [], "negotiation_status": status, "allocations": allocations}
+        return {
+            "messages": [AIMessage(content=response_text)], 
+            "turn_count": turn_number,
+            "negotiation_status": status, 
+            "allocations": allocations
+        }
         
     except Exception as e:
+        print(f"[hard_validator] ERROR: {e}")
         # If the LLM outputs garbage text instead of JSON, force it to try again
         return {"messages": [SystemMessage(content="Format error. You must output a valid AgentDecision.")], "negotiation_status": "validation_failed"}
 
