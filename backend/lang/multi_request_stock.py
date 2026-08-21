@@ -198,7 +198,11 @@ def responder_agent(state: AgentState):
     6. When you are ready to make your final decision, use the AgentDecision tool.
     """
     
-    response = llm_with_tools.invoke([SystemMessage(content=prompt)] + state["messages"])
+    response = llm_with_tools.invoke(
+        [SystemMessage(content="You are an automated retail inventory negotiation agent.")] + 
+        list(state["messages"]) + 
+        [HumanMessage(content=prompt)]
+    )
     
     return {"messages": [response]}
 
