@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TypedDict, List, Optional
 from urllib.parse import quote
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv()   
 from psycopg_pool import ConnectionPool
 from langgraph.checkpoint.postgres import PostgresSaver
 import os
@@ -447,7 +447,7 @@ graph.add_edge("arbitrator_agent", "human_approval")
 graph.add_conditional_edges("human_approval", route_after_human)
 graph.add_edge("escalate_to_supplier", END)
 
-pg_uri = os.getenv("DB_URL").replace("+psycopg2", "")
+pg_uri = os.getenv("DATABASE_URL").replace("+psycopg2", "")
 
 # 2. Initialize a connection pool for LangGraph
 connection_pool = ConnectionPool(
