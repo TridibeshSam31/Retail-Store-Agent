@@ -236,7 +236,6 @@ Retail-Store-Agent/
 
 - No real authentication — org/store identity is set via request headers by the frontend's picker.
 - Supplier contact is deep-link only (WhatsApp/email); there's no live send API.
-- The reject → renegotiate loop (Case E) has no cap.
 - The even-split fallback is strictly even, not proportional to each store's actual need.
 - The safe-to-release and transfer-ETA-vs-stockout eligibility checks run once at negotiation start; there's no mid-negotiation re-check if conditions change while agents are still arguing.
 - Cross-org coordination is intentionally impossible — negotiation only ever happens within one chain.
