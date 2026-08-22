@@ -7,24 +7,19 @@ the system automatically triggers the retraining pipeline to generate a fresh .p
 """ 
 
 import pandas as pd
-# --- CHANGED START ---
 from sklearn.metrics import mean_absolute_percentage_error
-# --- CHANGED END ---
 import subprocess
 from app.core.config import settings
 from pathlib import Path
 from sqlalchemy import create_engine
-# --- CHANGED START ---
 import sys
-# --- CHANGED END ---
+
 
 engine = create_engine(settings.database_url)
 PIPELINE_DIR = Path(__file__).resolve().parent
 
-# --- CHANGED START ---
 # Define a 20% global error threshold using MAPE
 MAPE_THRESHOLD = 0.20
-# --- CHANGED END ---
 
 def evaluate_model():
     print("Evaluating predictions against actuals for the past 7 days...")
@@ -47,7 +42,6 @@ def evaluate_model():
             print("No evaluation data available yet for the past 7 days.")
             return
 
-        # --- CHANGED START ---
         # Calculates the overall MAPE across all items, stores, and days in the 7-day window
         # Scikit-learn handles division by zero automatically under the hood
         mape_7_day_avg = mean_absolute_percentage_error(df_eval['actual_demand'], df_eval['predicted_demand'])
@@ -63,7 +57,6 @@ def evaluate_model():
             subprocess.run([sys.executable, str(PIPELINE_DIR / "model.py")], check=True)
         else:
             print("Model performance is stable over the past week. No retrain required.")
-        # --- CHANGED END ---
             
     except Exception as e:
         print(f"Evaluation failed: {e}")

@@ -36,7 +36,7 @@ This chain is deliberately not the target audience of the big enterprise ERP sui
 
 Most inventory tools — including the majority of "AI-powered" ones — do one of two things: **tell you what already happened** ("this item is low"), or **centralize data** into one dashboard and still leave the cross-store decision to a human staring at spreadsheets. Neither one solves the actual hard part: when two stores in the same chain want the same limited surplus, someone has to decide who gets it, and why.
 
-**This system is the only one in the stack that lets the stores argue it out themselves.** Each store's agent represents that store's own interest — its urgency, its sales velocity, its context — and negotiates against other stores' agents with a neutral arbitrator settling it if they can't agree, falling back to a deterministic even split rather than stalling forever. That's a fundamentally different shape of solution from a dashboard: it's not *reporting* a shortage, it's *resolving* one, end-to-end, with the reasoning fully visible in the transcript — and a human still has to tap approve before anything physically moves.
+**This system is the only one in the stack that lets the stores argue it out themselves.** Each store's agent represents that store's own interest — its urgency, its sales velocity, its context — and negotiates against other stores' agents with a neutral arbitrator settling it if they can't agree, falling back to a deterministic even split rather than stalling forever. Each agent isn't just arguing from a fixed brief either — it has live tools to check its own inventory, forecast, expiry, and stockout risk mid-negotiation, so the argument reflects the store's actual current state, not a snapshot taken before the graph started. That's a fundamentally different shape of solution from a dashboard: it's not *reporting* a shortage, it's *resolving* one, end-to-end, with the reasoning fully visible in the transcript — and a human still has to tap approve before anything physically moves.
 
 Paired with a real forecasting model (not a static reorder-point rule) and a hard two-tier detection system (catches both the slow-building shortage *and* the sudden one-large-sale shock), the result is a chain that reacts to its *own* real-time state instead of a manager's memory of it.
 
@@ -49,7 +49,7 @@ In a retail chain with multiple stores under one owner, stock management today l
 **Retail Store Agent** replaces that loop with two systems working together:
 
 1. **A prediction engine** (XGBoost demand forecasting) that watches sales data per item per store and tells you when you're likely to run out and how much to reorder — instead of a manager guessing. It predicts both the reorder point and the expected time-to-stockout, so the system knows whether a transfer from another store is even feasible before it starts negotiating.
-2. **A team of LangGraph-orchestrated AI agents** — one per store, plus a neutral arbitrator — that activate automatically the moment a shortage is detected. If another store in the chain has surplus of that item, the agents negotiate (each arguing its own store's case) and arrive at a decision: transfer stock from the surplus store, or escalate to the supplier if no transfer makes sense.
+2. **A team of LangGraph-orchestrated AI agents** — one per store, plus a neutral arbitrator — that activate automatically the moment a shortage is detected. If another store in the chain has surplus of that item, the agents negotiate (each arguing its own store's case, backed by live tools rather than a static brief) and arrive at a decision: transfer stock from the surplus store, or escalate to the supplier if no transfer makes sense.
 
 The manager's job shrinks to approving what the agents propose and physically confirming stock movement. Everything else — noticing the problem, deciding what to do, and justifying the decision — is handled by the system.
 
@@ -59,6 +59,8 @@ The manager's job shrinks to approving what the agents propose and physically co
 
 ## Features
 
+- **Tool-using store agents** — each store agent has live tools for inventory, demand forecast, expiry, stockout risk, transfer ETA, and safe surplus, so a negotiation turn reflects the store's actual current state instead of a fixed context baked in before the graph starts. The agents observe their environment and act on it, not just argue from a script.
+- **Constraint-gated candidate eligibility** — before a store is even considered as a transfer candidate, it has to clear two checks: *safe to release* (usable surplus after accounting for that store's own future demand and expiry) and *arrives in time* (transfer ETA is faster than the deficit store's projected stockout). Only candidates passing both make it into negotiation.
 - **Two-tier shortage detection** — a real-time check flags a sudden, unexpected drop ("immediately low") independent of the ML forecast, while a batch pipeline re-forecasts every *X* transactions and flags a slower, expected shortage ("might be low").
 - **Autonomous multi-agent negotiation** — a LangGraph state machine spins up an initiator agent (the deficit store) and responder agents (candidate surplus stores, nearest-first) that argue their case turn-by-turn over a capped number of rounds.
 - **Neutral arbitrator with a deterministic fallback** — if agents can't reach agreement within the turn limit, the arbitrator falls back to a strict even split of available surplus rather than stalling. Or if the arbitrator is satisfied with a partial fill, it books that and leaves the remainder unfulfilled.  
@@ -77,7 +79,7 @@ The manager's job shrinks to approving what the agents propose and physically co
 | **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui on Radix primitives, TanStack Query, Zustand, Sonner |
 | **Backend API** | FastAPI, SQLAlchemy 2.0, Pydantic v2 |
 | **Database** | PostgreSQL |
-| **Agent orchestration** | LangGraph (state machine + checkpointing), LangChain, Google Gemini (`gemini-3.5-flash-lite` via `langchain-google-genai`) |
+| **Agent orchestration** | LangGraph (state machine + checkpointing), LangChain tool-calling (inventory, forecast, expiry, stockout, transfer ETA, safe surplus)
 | **Demand forecasting** | XGBoost regressor, scikit-learn (`TimeSeriesSplit` + `GridSearchCV`)|
 | **Deployment target** | Render (backend, single service — API + agents + ML run in-process), Vercel (frontend) |
 
@@ -145,8 +147,8 @@ flowchart TD
     ESC --> END1([<b>END</b>])
 ```
 
-- **`detect_shortage`** pulls the deficit store's current stock and EOQ, then ranks every other store in the org by distance and usable surplus (surplus above what *that* store's own forecast needs, minus near-expiry stock).
-- **`initiator_agent` / `responder_agent`** loop turn-by-turn: the deficit store's agent argues its case, the candidate surplus store's agent either agrees (`[AGREED]`) or refuses (`[REFUSED]`), each turn persisted as a `NegotiationTurn` row. A non-responsive agent is retried with exponential backoff + jitter; if it still doesn't respond, its last-known stock data is used without a live argument.
+- **`detect_shortage`** pulls the deficit store's current stock and EOQ, then ranks every other store in the org by distance and usable surplus — but only candidates that clear both eligibility checks make the list: *safe to release* (usable surplus after that store's own forecasted demand and expiry are subtracted) and *arrives in time* (transfer ETA is faster than the deficit store's projected stockout).
+- **`initiator_agent` / `responder_agent`** loop turn-by-turn, each backed by live tools for inventory, forecast, expiry, stockout, transfer ETA, and safe surplus — so an agent can check its own real numbers mid-argument instead of relying only on what `detect_shortage` handed it upfront. The deficit store's agent argues its case, the candidate surplus store's agent either agrees (`[AGREED]`) or refuses (`[REFUSED]`), each turn persisted as a `NegotiationTurn` row. A non-responsive agent is retried with exponential backoff + jitter; if it still doesn't respond, its last-known stock data is used without a live argument.
 - **`process_agreement_or_transition`** books an agreed allocation, then either moves to the next candidate store (need still remains) or hands off to the arbitrator.
 - **`arbitrator_agent`** finalizes the resolution — a full transfer, a partial fill, or (if the turn cap was hit with no agreement) a strict even split of surplus — and writes the proposed `Transfer` row(s).
 - **`human_approval`** is a hard interrupt (`interrupt_before`) — the graph genuinely pauses here until a manager calls `/negotiations/{id}/approve` or `/negotiations/{id}/reject`, which resumes the graph with that decision.
@@ -218,7 +220,7 @@ Retail-Store-Agent/
 │   │   ├── schemas/           # Pydantic request/response schemas
 │   │   ├── routers/           # inventory, negotiations, transfers, suppliers, predictions...
 │   │   └── services/          # trigger detection, prediction service
-│   ├── lang/                  # LangGraph negotiation engine + app/ bridge
+│   ├── lang/                  # LangGraph negotiation engine + app/ bridge + agent tools
 │   ├── ml/pipeline/           # XGBoost training + in-process inference service
 │   └── requirements.txt
 └── frontend/
@@ -234,7 +236,6 @@ Retail-Store-Agent/
 
 - No real authentication — org/store identity is set via request headers by the frontend's picker.
 - Supplier contact is deep-link only (WhatsApp/email); there's no live send API.
-- The reject → renegotiate loop (Case E) has no cap.
 - The even-split fallback is strictly even, not proportional to each store's actual need.
-- The transfer-time-vs-stockout check runs once at negotiation start, with no mid-negotiation re-check.
+- The safe-to-release and transfer-ETA-vs-stockout eligibility checks run once at negotiation start; there's no mid-negotiation re-check if conditions change while agents are still arguing.
 - Cross-org coordination is intentionally impossible — negotiation only ever happens within one chain.

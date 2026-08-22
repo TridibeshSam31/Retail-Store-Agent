@@ -87,6 +87,19 @@ def confirm_transfer(transfer_id: int, db: Session = Depends(get_db),
                 db.add(to_inv)
             transfer.completed_at = datetime.utcnow()
 
+            # Mark negotiation as completed if all its transfers are done
+            if transfer.negotiation_id:
+                from app.models import Negotiation
+                neg = db.get(Negotiation, transfer.negotiation_id)
+                if neg and neg.status == "approved":
+                    uncompleted = db.query(Transfer).filter(
+                        Transfer.negotiation_id == transfer.negotiation_id,
+                        Transfer.completed_at.is_(None),
+                        Transfer.transfer_id != transfer.transfer_id
+                    ).count()
+                    if uncompleted == 0:
+                        neg.status = "completed"
+
         db.commit()
     except ValueError as e:
         db.rollback()
